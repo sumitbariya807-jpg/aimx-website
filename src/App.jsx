@@ -19,7 +19,7 @@ const eventPrices = { 1: 150, 2: 100, 3: 300, 4: 200, 5: 150, 6: 200, 7: 400, 8:
 
 // Floating Particles Component
 function Particles() {
-  const particles = Array.from({ length: 15 }, (_, i) => ({
+  const particles = Array.from({ length: 8 }, (_, i) => ({
     id: i,
     left: Math.random() * 100,
     delay: Math.random() * 5,
@@ -221,10 +221,10 @@ function ScrollReveal({ children, className = '' }) {
 function Home() {
   return (
     <>
-      <section className="hero" style={{position: 'relative', zIndex: 2, backgroundImage: "url('/assets/gtahome3.png')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', opacity: 1, minHeight: '100vh'}}>
+      <section className="hero" style={{position: 'relative', zIndex: 2, backgroundImage: "url('/assets/gtahome3.png')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', opacity: 1, display: 'flex', flexDirection: 'column'}}>
         <Particles />
 
-        <div style={{paddingTop: '150px', paddingBottom: '100px', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+        <div style={{paddingTop: 'clamp(110px, 18vh, 160px)', paddingBottom: '100px', display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
           <h1 className="hero-title">AIMX</h1>
           <p className="hero-subtitle">RULE THE CODE • OWN THE CITY</p>
           <div className="hero-buttons">
