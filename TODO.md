@@ -1,17 +1,22 @@
-# Aimx-website Deployment TODO
+# Deployment Progress Tracker
 
-## Plan Steps:
-- [x] 1. Setup Git global config (user/email)
-- [x] 2. Check/install GitHub CLI (gh) - NOT INSTALLED. Using manual Git + web repo creation.
-- [x] 3. Edit vite.config.js (add base '/aimx-website/')
-- [x] 4. cd Aimx-website && git init, add ., commit initial (done)
-- [ ] 5. gh repo create aimx-website --public --source=. --remote=origin --push
-- [ ] 6. npm run build
-- [ ] 7. Commit dist/ or setup gh-pages
-- [ ] 8. Enable GitHub Pages in repo settings (user: branch gh-pages)
-- [x ] Test live: https://sumitbariya807-jpg.github.io/aimx-website
+**Vercel Deploy Steps (Updated for fix blank screen):**
+- [x] Vercel CLI install & login
+- [x] Git config set
+- [x] Repo ready & pushed
+- [x] Initial deploy (blank due to base path)
+- [ ] Fix: Edit vite.config.js (remove base), index.html (src="./src/main.jsx")
+- [ ] Local test: npm run build && npm run preview
+- [ ] Redeploy: vercel --prod → Live working site!
 
-Repo name 'aimx-website' confirmed. Email as provided (gamil.com).
+**Run now:**
+```
+cd Aimx-website
+npm run build
+npm run preview  # http://localhost:4173 test
+vercel --prod    # New URL working!
+```
 
-Progress updated after each step.
+Live previews:
+- https://aimx-website-yh9k-ahof9pu95-sumitbariya807-jpgs-projects.vercel.app (fix pending)
 
