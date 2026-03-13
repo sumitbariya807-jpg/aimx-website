@@ -1,0 +1,94 @@
+/* Global Styles - GTA Vice City / AIMX Theme */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 100px;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--vc-dark);
+  color: #fff;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+
+/* Smooth scrolling */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Remove default button styles */
+button, input, select, textarea {
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+/* Link reset */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Image responsive */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Custom selection color */
+::selection {
+  background: #FF6B35;
+  color: #0D0D1A;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0D0D1A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #FF6B35, #FF1493);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #FF1493, #00D4FF);
+}
+
+/* Focus styles for accessibility */
+:focus-visible {
+  outline: 2px solid #FF6B35;
+  outline-offset: 2px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
