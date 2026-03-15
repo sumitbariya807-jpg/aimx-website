@@ -1,5 +1,5 @@
 /* GTA VICE CITY 1986 - AIMX 2026 */
-/* Retro Miami Neon • Ocean Drive • Gaming Tech Loading */
+ /* Retro Miami Neon • Ocean Drive • Gaming Tech Loading */
 /* CRT • Glitch • Matrix Rain • Palm Sway • Arcade Animations */
 
 /* No Google Fonts import - using Pricedown CDN via index.html */
@@ -48,19 +48,6 @@
   box-sizing: border-box;
 }
 
-.container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-@media (max-width: 768px) {
-  .container {
-    padding: 0 15px;
-  }
-}
-
 html {
   scroll-behavior: smooth;
 }
@@ -70,7 +57,7 @@ body {
   background: var(--vc-dark);
   color: #fff;
   min-height: 100vh;
-  overflow-x: hidden !important;
+  overflow-x: hidden;
 }
 
 /* ========================================
@@ -87,7 +74,7 @@ body::before {
   height: 100vh;
   background: 
     linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)),
-    url('/assets/gta-vi-poster.jpg') center/cover no-repeat fixed;
+    url('/assets/gtahome4.jpg') center/cover no-repeat fixed;
   z-index: -2;
 }
 
@@ -196,7 +183,10 @@ body::after {
   padding: 18px 50px;
   background: linear-gradient(180deg, rgba(13, 13, 26, 0.95) 0%, rgba(13, 13, 26, 0.8) 100%);
   border-bottom: 1px solid rgba(255, 107, 53, 0.3);
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 1000;
   backdrop-filter: blur(20px);
   box-shadow: 
@@ -246,19 +236,25 @@ body::after {
   text-shadow: 0 0 10px var(--vc-pink);
 }
 
-.navbar-links {
+.navbar-links{
   display: flex;
-  gap: 25px;
-  flex-wrap: wrap;
-  justify-content: center;
+  gap: 2rem;
+  position: static;
+  max-height: none;
+  opacity: 1;
+  transform: none;
+  padding: 0;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
 }
 
 .hamburger {
   display: none;
   flex-direction: column;
   justify-content: space-around;
-  width: clamp(25px, 8vw, 35px);
-  height: clamp(20px, 6vw, 28px);
+  width: 30px;
+  height: 25px;
   background: none;
   border: none;
   cursor: pointer;
@@ -269,7 +265,7 @@ body::after {
 
 .hamburger span {
   width: 100%;
-  height: clamp(2px, 0.6vw, 4px);
+  height: 3px;
   background: var(--vc-orange);
   border-radius: 2px;
   transition: all 0.3s ease;
@@ -289,10 +285,6 @@ body::after {
 }
 
 @media (max-width: 768px) {
-  .hero-particles {
-    display: none;
-  }
-  
   .hamburger {
     display: flex;
   }
@@ -301,6 +293,7 @@ body::after {
     padding: 15px 25px;
     justify-content: space-between;
   }
+
   
   .navbar-logo {
     font-size: 1.8rem;
@@ -308,24 +301,31 @@ body::after {
   
   .navbar-links {
     position: absolute;
-    top: 70px;
-    left: 0;
-    width: 100%;
-    background: #0D0D1A;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-    padding: 0;
+    top: 100%;
+    right: 20px;
+    width: 280px;
+    height: auto;
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.35s ease;
-    border-bottom: 1px solid rgba(255,107,53,0.3);
+    background: linear-gradient(180deg, rgba(13, 13, 26, 0.98) 0%, rgba(26, 10, 46, 0.95) 100%);
+    backdrop-filter: blur(20px);
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    opacity: 0;
+    transform: translateY(-20px) scaleY(0.8);
+    transition: max-height 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease, transform 0.3s ease;
+    z-index: 1002;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    border-radius: 12px;
   }
 
+  
   .navbar-links.open {
-    max-height: 300px;
-    padding: 20px 0;
+    max-height: 450px;
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
   }
   
   .navbar-links a {
@@ -342,10 +342,28 @@ body::after {
     transform: scale(1.05);
   }
   
-
+  .menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    backdrop-filter: blur(5px);
+  }
 }
 
-
+@media (max-width: 375px) {
+  .navbar-links {
+    width: calc(100vw - 40px);
+    right: 20px;
+  }
+  
+  .navbar-links.open {
+    max-height: 450px;
+  }
+}
 
 .navbar-links a {
   font-family: var(--font-heading);
@@ -398,30 +416,6 @@ body::after {
   padding: 120px 20px 80px;
   position: relative;
   overflow: hidden;
-}
-
-@media (max-width: 768px) {
-  .hero {
-    padding: 40px 20px !important;
-    flex-direction: column !important;
-  }
-  
-  .hero-buttons {
-    flex-direction: column !important;
-    width: 100% !important;
-    gap: 15px !important;
-  }
-  
-  .hero-buttons button,
-  .hero-buttons a {
-    width: 100% !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .hero {
-    padding: 30px 15px !important;
-  }
 }
 
 /* Hero Background Elements */
@@ -525,6 +519,7 @@ body::after {
   justify-content: center;
   position: relative;
   z-index: 1;
+  border-radius: 10px;
 }
 
 /* Floating Particles */
@@ -676,16 +671,9 @@ body::after {
 
 .section {
   padding: clamp(40px, 10vw, 100px) clamp(20px, 5vw, 50px);
-  width: 100%;
   max-width: 1400px;
   margin: 0 auto;
   position: relative;
-}
-
-@media (max-width: 768px) {
-  .section {
-    padding: 40px 15px !important;
-  }
 }
 
 .section-title {
@@ -997,32 +985,6 @@ body::after {
   gap: 30px;
 }
 
-@media (max-width: 768px) {
-  .events-grid, 
-  .categories-grid, 
-  .about-stats {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-  
-  .mission-card {
-    padding: 20px;
-  }
-  
-  .mission-card-header {
-    padding: 15px 20px;
-  }
-  
-  .mission-card-body {
-    padding: 20px;
-  }
-  
-  .mission-icon {
-    font-size: 2.5rem;
-  }
-}
-
-/* Mission Card - Glassmorphism */
 .mission-card {
   background: var(--glass-bg);
   backdrop-filter: blur(15px);
@@ -1519,7 +1481,6 @@ body::after {
 }
 
 .footer-section p,
-
 .footer-section a {
   color: rgba(255, 255, 255, 0.7);
   text-decoration: none !important;
@@ -1528,7 +1489,6 @@ body::after {
   transition: all 0.3s ease;
   font-size: 1.05rem;
 }
-
 
 .footer-section a:hover {
   color: var(--neon-cyan);
@@ -1959,9 +1919,6 @@ body::after {
 }
 
 @media (max-width: 480px) {
-  .hero-title::after {
-    width: 150px !important;
-  }
   .hero-buttons {
     flex-direction: column;
     align-items: center;
@@ -2181,6 +2138,99 @@ body::after {
   background-attachment: fixed;
   opacity: 0.3;
   z-index: -2;
+}
+
+/* ADMIN PANEL ENHANCEMENT - GTA Theme */
+/* Premium Glassmorphism + Control Panel Neon */
+
+.admin-panel {
+  background: linear-gradient(135deg, rgba(26, 10, 46, 0.95) 0%, rgba(13, 13, 26, 0.98) 100%);
+  backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  box-shadow: 
+    0 30px 60px rgba(0, 0, 0, 0.6),
+    inset 0 0 30px rgba(255, 107, 53, 0.05);
+}
+
+.admin-header {
+  background: linear-gradient(135deg, var(--neon-orange), var(--neon-cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(255, 107, 53, 0.5);
+}
+
+.admin-card {
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.admin-card:hover {
+  border-color: var(--neon-orange);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.4),
+    0 0 30px rgba(255, 107, 53, 0.2);
+  transform: translateY(-5px);
+}
+
+.admin-status-badge {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+.status-approved { 
+  background: rgba(37, 211, 102, 0.2);
+  color: #25D366;
+  border: 1px solid rgba(37, 211, 102, 0.4);
+}
+
+.status-rejected { 
+  background: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.4);
+}
+
+.status-pending { 
+  background: rgba(255, 193, 7, 0.2);
+  color: #FFC107;
+  border: 1px solid rgba(255, 193, 7, 0.4);
+}
+
+.admin-action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.btn-delete {
+  background: linear-gradient(135deg, #dc3545, #c82333) !important;
+  border-color: #dc3545 !important;
+  color: white !important;
+  font-weight: 700;
+  padding: 10px 18px !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease;
+}
+
+.btn-delete:hover {
+  box-shadow: 0 0 25px rgba(220, 53, 69, 0.6) !important;
+  transform: scale(1.05) !important;
+}
+
+@media (max-width: 768px) {
+  .admin-action-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .btn-delete {
+    width: 100%;
+  }
 }
 
 
