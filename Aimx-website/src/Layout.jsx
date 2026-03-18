@@ -10,7 +10,7 @@ function Navbar() {
   return (
     <nav className="navbar" style={{backgroundImage: 'url(/assets/gtanav2.png)', backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative'}}>
       <div style={{position: 'absolute', inset: 0, background: 'rgba(13, 13, 26, 0.58)', backdropFilter: 'blur(0.5px)'}}></div>
-      <div style={{position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0 20px'}}>
+        <div style={{position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0 clamp(12px, 4vw, 25px)'}}>
         <Link to="/" className="navbar-logo">AIMX <span></span></Link>
         
         <button className={`hamburger ${isMenuOpen ? 'active' : ''}`} onClick={toggleMenu} aria-label="Toggle menu">
@@ -20,26 +20,17 @@ function Navbar() {
         </button>
       </div>
 
-      {isMenuOpen && (
-        <button 
-          className="close-menu-btn" 
-          onClick={toggleMenu} 
-          aria-label="Close menu"
-          style={{position: 'absolute', top: '20px', right: '20px', zIndex: 1002, background: 'none', border: 'none', fontSize: '2rem', color: 'var(--vc-orange)', cursor: 'pointer'}}
-        >
-          ✕
-        </button>
-      )}
+
       
       <div className={`navbar-links ${isMenuOpen ? 'open' : ''}`}>
         <Link to="/" onClick={() => setIsMenuOpen(false)}>Home</Link>
         <Link to="/events" onClick={() => setIsMenuOpen(false)}>Events</Link>
         <Link to="/schedule" onClick={() => setIsMenuOpen(false)}>Schedule</Link>
         <Link to="/register" onClick={() => setIsMenuOpen(false)}>Register</Link>
+        <Link to="/scan" onClick={() => setIsMenuOpen(false)}>Scanner</Link>
         <Link to="/login" onClick={() => setIsMenuOpen(false)}>Login</Link>
       </div>
       
-      {isMenuOpen && <div className="menu-overlay" onClick={() => setIsMenuOpen(false)}></div>}
     </nav>
   )
 }

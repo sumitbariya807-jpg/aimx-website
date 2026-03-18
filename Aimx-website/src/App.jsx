@@ -1,28 +1,290 @@
 import { useState, useEffect, useRef } from 'react'
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation, useSearchParams, useParams } from 'react-router-dom'
+import Layout from './Layout.jsx'
+import EventPayment from './EventPayment.jsx';
+
+
 import './App.css'
-import { sendConfirmationEmail, sendStatusUpdateEmail } from './useEmail.js'
+import './EventRegistration.css'
+import './hero-buttons.css'
+import QRCode from 'qrcode'
+import { postRegistration, getRegistrations, getRegistrationById, updateRegistrationStatus, adminLogin, adminLogout, downloadParticipantsExcel, postCheckin, verifyParticipant, checkinParticipant } from './api.js'
+import { Html5QrcodeScanner } from "html5-qrcode";
+
+function SuccessPage() {
+  const { id } = useParams();
+  const [participant, setParticipant] = useState(null);
+  const [qrUrl, setQrUrl] = useState('');
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await getRegistrationById(id);
+        if (!data) {
+          alert('Registration not found');
+          navigate('/login');
+          return;
+        }
+        setParticipant(data);
+        if (data.status === 'approved') {
+          // Generate QR ticket only for approved registrations
+          const qrData = data.participantId;
+          const url = await QRCode.toDataURL(qrData, {
+            width: 256,
+            margin: 2,
+            color: {
+              dark: '#0D0D1A',
+              light: '#FFFFFF'
+            }
+          });
+          setQrUrl(url);
+        } else {
+          setQrUrl('');
+        }
+      } catch (error) {
+        console.error('Success page error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (id) load();
+  }, [id, navigate]);
+
+  const downloadTicket = () => {
+    if (!qrUrl || participant.status !== 'approved') {
+      alert('QR ticket available only after admin approval!');
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = qrUrl;
+    link.download = `AIMX2026-${participant.participantId}-ticket.png`;
+    link.click();
+  };
+
+  if (loading) return <div className="section" style={{paddingTop: '120px'}}><p>Loading ticket...</p></div>;
+  if (!participant) return <div className="section" style={{paddingTop: '120px'}}><p>Registration not found</p></div>;
+
+  return (
+    <section className="section" style={{paddingTop: '120px'}}>
+      <ScrollReveal>
+        <div className="success-card ticket-card">
+          <h2>🎫 Event Ticket</h2>
+          <div className="participant-id">{participant.participantId}</div>
+          <div className="ticket-details">
+            <p><strong>{participant.name}</strong></p>
+            <p>{participant.eventName} {participant.eventSubname && `- ${participant.eventSubname}`}</p>
+            <p>📱 {participant.phone}</p>
+            <p>Status: <span className={participant.status === 'approved' ? 'approved' : 'pending'}>{participant.status.toUpperCase()}</span></p>
+          </div>
+          {participant.status === 'approved' && qrUrl ? (
+            <div className="ticket-qr-section">
+              <p>✅ APPROVED - Scan at entry</p>
+              <div className="qr-container">
+                <img src={qrUrl} alt="AIMX QR Ticket" className="ticket-qr" />
+              </div>
+              <button className="btn btn-primary" onClick={downloadTicket}>📥 Download Ticket</button>
+            </div>
+          ) : (
+            <div className="ticket-pending">
+              <p>⏳ PENDING - Await Admin Approval</p>
+              <p>Your payment/transaction is under admin verification.</p>
+              <p>Once approved, your QR ticket will appear here and be sent via email.</p>
+              <p><em>Check back later or login to dashboard.</em></p>
+            </div>
+          )}
+          <button className="btn" onClick={() => navigate('/events')}>Back to Events</button>
+        </div>
+      </ScrollReveal>
+    </section>
+  );
+}
+
+function CheckinPage() {
+  const [scannerState, setScannerState] = useState('scan'); // 'scan', 'verify', 'success', 'error'
+  const [qrResult, setQrResult] = useState(null);
+  const [participant, setParticipant] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const scannerRef = useRef(null);
+  const scanner = useRef(null);
+
+  useEffect(() => {
+    scanner.current = new Html5QrcodeScanner(
+      "scanner-reader",
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      false
+    );
+
+    const onScanSuccess = async (decodedText) => {
+      setQrResult(decodedText);
+      scanner.current.clear();
+      await verifyAndShow(decodedText);
+    };
+
+    const onScanFailure = (error) => {
+      // console.warn(`QR scan error: ${error}`);
+    };
+
+    scanner.current.render(onScanSuccess, onScanFailure);
+
+    return () => {
+      if (scanner.current) scanner.current.clear();
+    };
+  }, []);
+
+  const verifyAndShow = async (qrText) => {
+    try {
+      setLoading(true);
+      // Extract registration ID from QR (AIMX2026-XXXX format)
+      const match = qrText.match(/AIMX2026-(\w+)/);
+      if (!match) {
+        setScannerState('error');
+        return;
+      }
+      const registrationId = match[0]; // Full AIMX2026-XXXX
+      const data = await verifyParticipant(registrationId);
+      setParticipant(data);
+      setScannerState('verify');
+    } catch (error) {
+      console.error('Verify error:', error);
+      setScannerState('error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckin = async () => {
+    try {
+      setLoading(true);
+      const result = await checkinParticipant(participant.registrationId);
+      setParticipant(result.participant);
+      setScannerState('success');
+    } catch (error) {
+      if (error.message.includes('already checked in')) {
+        setScannerState('error');
+      } else {
+        alert('Checkin failed: ' + error.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const restartScan = () => {
+    setScannerState('scan');
+    setQrResult(null);
+    setParticipant(null);
+  };
+
+  if (scannerState === 'scan') {
+    return (
+      <section className="section" style={{paddingTop: '120px'}}>
+        <ScrollReveal>
+          <div className="scanner-container glass-card">
+            <h1 className="scanner-title">🔍 AIMX 2026 Entry Scanner</h1>
+            <p className="scanner-instruction">"Scan participant QR ticket"</p>
+            <div id="scanner-reader" className="scanner-viewport"></div>
+            <button className="btn btn-secondary" onClick={scanner.current?.clear} style={{marginTop: '1rem'}}>
+              Stop Scanner
+            </button>
+          </div>
+        </ScrollReveal>
+      </section>
+    );
+  }
+
+  if (scannerState === 'verify') {
+    return (
+      <section className="section" style={{paddingTop: '120px'}}>
+        <ScrollReveal>
+          <div className="scanner-container glass-card">
+            <h2 className="scanner-title">📋 Ticket Verification</h2>
+              <div className="verify-card">
+              <h2 style={{color: "white", fontSize: "3rem", marginBottom: "20px"}}>
+                {participant.registrationId}
+              </h2>
+              <p style={{color: "white", fontSize: "1.5rem"}}><strong>Participant:</strong> {participant.name}</p>
+              <p style={{color: "white", fontSize: "1.5rem"}}><strong>Event:</strong> {participant.event}</p>
+              <p style={{color: "white", fontSize: "1.5rem"}}><strong>Payment:</strong> <span className={participant.paymentStatus === 'Approved' ? 'status-approved' : 'status-pending'}>{participant.paymentStatus}</span></p>
+              <p style={{color: "white", fontSize: "1.5rem"}}><strong>Entry:</strong> <span className={participant.checkInStatus ? 'status-checkedin' : 'status-notcheckedin'}>{participant.checkInStatus ? 'Checked In' : 'Not Checked In'}</span></p>
+            </div>
+            <div className="scanner-actions">
+              <button className="btn btn-primary" onClick={handleCheckin} disabled={loading || participant.checkInStatus}>
+                {participant.checkInStatus ? 'Already Checked In' : '✅ Mark Check-In'}
+              </button>
+              <button className="btn btn-secondary" onClick={restartScan}>Scan Another</button>
+            </div>
+          </div>
+        </ScrollReveal>
+      </section>
+    );
+  }
+
+  if (scannerState === 'success') {
+    return (
+      <section className="section" style={{paddingTop: '120px'}}>
+        <ScrollReveal>
+          <div className="scanner-container glass-card success-container">
+            <h2 className="scanner-title success-title">✅ Check-In Complete</h2>
+            <div className="success-checkmark">✓</div>
+            <div className="verify-card success-card">
+              <p><strong>{participant.name}</strong></p>
+              <p>{participant.event}</p>
+              <p>ID: {participant.registrationId}</p>
+            </div>
+            <button className="btn btn-primary" onClick={restartScan}>Scan Next Participant</button>
+          </div>
+        </ScrollReveal>
+      </section>
+    );
+  }
+
+  if (scannerState === 'error') {
+    return (
+      <section className="section" style={{paddingTop: '120px'}}>
+        <ScrollReveal>
+          <div className="scanner-container glass-card error-container">
+            <h2 className="scanner-title error-title">❌ Scan Error</h2>
+            <p>QR code invalid or participant not found.</p>
+            {qrResult && <p><small>Scanned: {qrResult}</small></p>}
+            <button className="btn btn-primary" onClick={restartScan}>Try Again</button>
+          </div>
+        </ScrollReveal>
+      </section>
+    );
+  }
+
+  return null;
+}
+
 
 const eventsData = [
-  { id: 1, name: 'Vice City Visuals', subname: 'UI/UX Battle', startTime: '11:00', endTime: '12:30', location: 'Classroom 4.8', category: 'Technical', icon: '🎨', head: { name: 'Bhagyesh Pandey', phone: '9075930985' } },
-  { id: 2, name: 'Mission Backtrack', subname: 'Output to Input', startTime: '14:00', endTime: '15:00', location: 'Lab 3', category: 'Technical', icon: '🔍', head: { name: 'Dighita Yerunkar', phone: '9321781602' } },
-  { id: 3, name: 'Hack Wanted', subname: 'Hackathon', startTime: '09:00', endTime: '15:00', location: '2nd Floor Lab', category: 'Technical', icon: '💻', head: { name: 'Aman Tripathi', phone: '8303026772' } },
-  { id: 4, name: 'Startup Syndicate', subname: 'Shark Tank', startTime: '14:00', endTime: '16:00', location: 'Seminar Hall', category: 'Technical', icon: '🦈', head: { name: 'Garima Joshi', phone: '9356063809' } },
-  { id: 5, name: 'City Groove', subname: 'Dance', startTime: '17:00', endTime: '18:30', location: 'Atrium', category: 'Cultural', icon: '💃', head: { name: 'Akanksha Sawant', phone: '8591237321' } },
-  { id: 6, name: 'Urban Strut', subname: 'Fashion Show', startTime: '18:30', endTime: '19:00', location: 'Atrium', category: 'Cultural', icon: '👗', head: { name: 'Revati Relekar', phone: '8433564689' } },
-  { id: 7, name: 'Urban Warfare', subname: 'BGMI', startTime: '13:00', endTime: '15:30', location: 'Classroom 4.4', category: 'E-Sports', icon: '🎮', head: { name: 'Soham Tambade', phone: '8356054488' } },
-  { id: 8, name: 'Chaos in the Streets', subname: 'Stumble Guys', startTime: '14:00', endTime: '15:00', location: 'Classroom 4.2', category: 'E-Sports', icon: '🏃', head: { name: 'Fahim Shaikh', phone: '8291644980' } },
-  { id: 9, name: 'The Grand Heist', subname: 'Treasure Hunt', startTime: '12:30', endTime: '14:00', location: 'Library, Canteen, 3rd & 4th Floor', category: 'Indoor', icon: '🗺️', head: { name: 'Amey Gawade', phone: '7900014084' } }
-]
+// Technical
+{ id: 1, name: 'UI/UX Battle – Vice City Visuals', category: 'Technical', price: 50, teamSize: 1, feeText: '₹50, 1 member', icon: '🎨', badgeColor: 'bg-gradient-to-r from-blue-500 to-purple-600', startTime: '10:00 AM', endTime: '11:30 AM', location: 'Design Lab', head: {name: 'Bhagyesh Pandey', phone: '9075930985'} },
+{ id: 2, name: 'Hackathon – Hack Wanted', category: 'Technical', price: 300, teamSize: 4, feeText: '₹300, 2–4 members', icon: '💻', badgeColor: 'bg-gradient-to-r from-blue-500 to-purple-600', startTime: '9:30 AM', endTime: '5:00 PM', location: 'Main Hall', head: {name: 'Aman Tripathi', phone: '8303026772'} },
+{ id: 3, name: 'Debugging', category: 'Technical', price: 50, teamSize: 1, feeText: '₹50, 1 member', icon: '🐛', badgeColor: 'bg-gradient-to-r from-blue-500 to-purple-600', startTime: '12:00 PM', endTime: '1:30 PM', location: 'Tech Lab', head: {name: 'Aisha Khan', phone: '9876543212'} },
+// Cultural
+{ id: 4, name: 'Dance', category: 'Cultural', price: 400, teamSize: 6, feeText: '₹400, 3–6 members', icon: '💃', badgeColor: 'bg-gradient-to-r from-pink-500 to-rose-500', startTime: '5:00 PM', endTime: '6:30 PM', location: 'Main Stage', head: {name: 'Tanisha', phone: '7208577313'} },
+{ id: 5, name: 'Ramp Walk', category: 'Cultural', price: 100, teamSize: 1, feeText: '₹100, 1 member', icon: '👗', badgeColor: 'bg-gradient-to-r from-pink-500 to-rose-500', startTime: '4:00 PM', endTime: '5:00 PM', location: 'Stage', head: {name: 'Vaishnavi', phone: '8928002367'} },
+{ id: 6, name: 'Singing', category: 'Cultural', price: 100, teamSize: 1, feeText: '₹100, 1 member', icon: '🎤', badgeColor: 'bg-gradient-to-r from-pink-500 to-rose-500', startTime: '3:00 PM', endTime: '4:00 PM', location: 'Auditorium', head: {name: 'Krisha', phone: '9429659108'} },
+// E-Sports
+{ id: 7, name: 'BGMI Tournament', category: 'E-Sports', price: 300, teamSize: 4, feeText: '₹300, 4 members', icon: '🎮', badgeColor: 'bg-gradient-to-r from-emerald-500 to-teal-500', startTime: '12:00 PM', endTime: '3:00 PM', location: 'Gaming Zone', head: {name: 'Soham Tambade', phone: '8356054488'} },
+  // AIMX Talks (Free)
+{ id: 8, name: 'Workshop', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '📚', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '11:00 AM', endTime: '12:00 PM', location: 'Workshop Room', head: {name: 'Maruf', phone: '9040286664'} },
+{ id: 9, name: 'Guest Session', subname: 'events head Garima', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '👥', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '11:45 AM', endTime: '12:15 PM', location: 'Main Hall', head: {name: 'Garima', phone: '9356063809'} },
+{ id: 10, name: 'Panel Discussion', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '💬', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '12:15 PM', endTime: '1:30 PM', location: 'Main Hall', head: {name: 'Prashant', phone: '7208503692'} },
+{ id: 11, name: 'Stumble', category: 'E-Sports', price: 30, teamSize: 1, feeText: '₹30, 1 member', icon: '🎮', badgeColor: 'bg-gradient-to-r from-emerald-500 to-teal-500', startTime: '1:00 PM', endTime: '2:30 PM', location: 'Gaming Zone', head: {name: 'Zaid', phone: '9324649291'} }
+  ]
 
-const eventPrices = { 1: 150, 2: 100, 3: 300, 4: 200, 5: 150, 6: 200, 7: 400, 8: 50, 9: 150 }
+// eventPrices no longer needed - use event.price
 
 // Floating Particles Component
 function Particles() {
   const particles = Array.from({ length: 15 }, (_, i) => ({
     id: i,
     left: Math.random() * 100,
-    delay: Math.random() * 5,
+    delay: Math.random() * 5, 
     duration: 10 + Math.random() * 10,
     size: 3 + Math.random() * 4,
     color: ['#FF6B35', '#FF1493', '#00D4FF', '#FFE500'][Math.floor(Math.random() * 4)]
@@ -52,7 +314,11 @@ function Particles() {
 function Navbar() {
   return (
     <nav className="navbar">
-<Link to="/" className="navbar-logo">AIMX <span></span></Link>
+
+      <Link to="/" className="navbar-logo">
+        AIMX
+      </Link>
+
       <div className="navbar-links">
         <Link to="/">Home</Link>
         <Link to="/events">Events</Link>
@@ -60,6 +326,7 @@ function Navbar() {
         <Link to="/register">Register</Link>
         <Link to="/login">Login</Link>
       </div>
+
     </nav>
   )
 }
@@ -82,23 +349,16 @@ function Footer() {
         </div>
         <div className="footer-section">
           <h3>Contact</h3>
-<p>📍 Aditya Institute of Management Studies and Research</p>
+          <p>📍 Aditya Institute of Management Studies and Research</p>
           <p>📞 +91 8070123440 Vishwajit</p>
           <p>✉️ infoaimx2026@gmail.com</p>
         </div>
-
         <div className="footer-section">
           <h3>Follow Us</h3>
-
-
           <a href="https://www.instagram.com/mca.aimsr/" target="_blank" rel="noopener noreferrer" className="social-link">
-
             <span style={{fontSize: '1.5rem'}}>📸</span> @mca.aimsr
-
           </a>
-
         </div>
-
       </div>
       <div className="footer-bottom">
         <p>© 2026 AIMX. Made with ❤️ in Mumbai</p>
@@ -107,7 +367,7 @@ function Footer() {
   )
 }
 
-// Enhanced Loading Spinner with GTA Style
+// LoadingSpinner, ScrollReveal, Home, Events, Schedule (unchanged from original clean code)
 function LoadingSpinner() {
   const [loadingText, setLoadingText] = useState('VICE CITY')
   const [loadingPercent, setLoadingPercent] = useState(0)
@@ -135,79 +395,51 @@ function LoadingSpinner() {
     }
   }, [])
 
-  const generateMatrixChars = () => {
-    const chars = []
-    for (let i = 0; i < 50; i++) {
-      chars.push(
-        <div
-          key={i}
-          className="matrix-char"
-          style={{
-            left: `${Math.random() * 100}%`,
-            animationDelay: `${Math.random() * 5}s`,
-            animationDuration: `${3 + Math.random() * 4}s`,
-            '--char': String.fromCharCode(0x30A0 + Math.random() * 96)
-          }}
-        >
-          {String.fromCharCode(0x30A0 + Math.random() * 96)}
-        </div>
-      )
-    }
-    return chars
-  }
-
   return (
     <div className="loading-container">
       <div className="crt-scanlines"></div>
       <div className="matrix-rain">
-        {generateMatrixChars()}
+        {Array.from({length: 50}, (_, i) => (
+          <div key={i} className="matrix-char" style={{
+            left: `${Math.random() * 100}%`,
+            animationDelay: `${Math.random() * 5}s`,
+            animationDuration: `${3 + Math.random() * 4}s`
+          }}>
+            {String.fromCharCode(0x30A0 + Math.random() * 96)}
+          </div>
+        ))}
       </div>
       <div className="vice-city-loader">
         <div className="vc-logo glitch" data-text="VICE CITY">VICE CITY</div>
-        <div className="loader-ring" style={{animationDuration: '1s'}}></div>
+        <div className="loader-ring"></div>
         <div className="loading-progress">
-          <div 
-            className="loading-progress-bar" 
-            style={{width: `${loadingPercent}%`}}
-          ></div>
+          <div className="loading-progress-bar" style={{width: `${loadingPercent}%`}}></div>
         </div>
-        <div className="loader-text" style={{fontSize: '1.4rem'}}>
-          {loadingText} {Math.floor(loadingPercent)}%
-        </div>
+        <div className="loader-text">{loadingText} {Math.floor(loadingPercent)}%</div>
         <div className="loading-dots">
-          <span></span>
-          <span></span>
-          <span></span>
+          <span></span><span></span><span></span>
         </div>
       </div>
     </div>
   )
 }
 
-// Scroll Reveal Component
 function ScrollReveal({ children, className = '' }) {
   const [isVisible, setIsVisible] = useState(false)
   const ref = useRef(null)
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true)
-          observer.unobserve(entry.target)
-        }
-      },
-      { threshold: 0.1 }
-    )
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true)
+        observer.unobserve(entry.target)
+      }
+    }, { threshold: 0.1 })
 
-    if (ref.current) {
-      observer.observe(ref.current)
-    }
+    if (ref.current) observer.observe(ref.current)
 
     return () => {
-      if (ref.current) {
-        observer.unobserve(ref.current)
-      }
+      if (ref.current) observer.unobserve(ref.current)
     }
   }, [])
 
@@ -218,52 +450,35 @@ function ScrollReveal({ children, className = '' }) {
   )
 }
 
+// Home, Events, Schedule components (unchanged, using clean original logic)
 function Home() {
   return (
     <>
-      <section className="hero" style={{position: 'relative', zIndex: 2, backgroundImage: "url('/assets/gtahome3.png')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', opacity: 1, minHeight: '100vh'}}>
+      <section className="hero">
         <Particles />
-
-        <div style={{paddingTop: '150px', paddingBottom: '100px', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+        <div style={{paddingTop: '150px', paddingBottom: '100px'}}>
           <h1 className="hero-title">AIMX</h1>
           <p className="hero-subtitle">RULE THE CODE • OWN THE CITY</p>
           <div className="hero-buttons">
-            <Link to="/register" className="btn btn-primary">Register Now</Link>
-            <Link to="/events" className="btn btn-neon">Explore Events</Link>
+<Link to="/register" className="btn btn-primary hero-register-btn">Register Now</Link>
+            <Link to="/events" className="btn btn-neon hero-explore-btn">Explore Events</Link>
           </div>
         </div>
       </section>
       
-      <section className="section" style={{position: 'relative', zIndex: 3}}>
+      <section className="section">
         <ScrollReveal>
           <h2 className="section-title">About AIMX</h2>
           <div className="about-content">
             <div className="about-text">
               <h3>Welcome to AIMX 2026</h3>
-              <p>The biggest tech fest organized by AIMSR. Join us on 27th March 2026 for an unforgettable experience of technology, creativity, and competition.</p>
-              <p style={{marginTop: '15px', color: 'var(--neon-cyan)'}}>🎮 Welcome to the future of tech fests!</p>
+              <p>The biggest tech fest organized by AIMSR. Join us on 27th March 2026 for an unforgettable experience.</p>
             </div>
             <div className="about-stats">
-              <div className="stat-card">
-                <div className="stat-number">9</div>
-                <div className="stat-label">Events</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-number">15+</div>
-                <div className="stat-label">Colleges</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-number">200+</div>
-                <div className="stat-label">Participants</div>
-              </div>
-
-              <div className="stat-card">
-
-                <div className="stat-number">🏆</div>
-
-                <div className="stat-label">Exciting Prizes</div>
-              </div>
-
+<div className="stat-card"><div className="stat-number">10</div><div className="stat-label">Events</div></div>
+              <div className="stat-card"><div className="stat-number">15+</div><div className="stat-label">Colleges</div></div>
+              <div className="stat-card"><div className="stat-number">200+</div><div className="stat-label">Participants</div></div>
+              <div className="stat-card"><div className="stat-number">🏆</div><div className="stat-label">Prizes</div></div>
             </div>
           </div>
         </ScrollReveal>
@@ -272,27 +487,10 @@ function Home() {
       <section className="section">
         <ScrollReveal>
           <h2 className="section-title">Event Categories</h2>
-          <div className="categories-grid">
-            <Link to="/events?cat=Technical" className="category-card">
-              <div className="category-icon">💻</div>
-              <h3 className="category-title">Technical</h3>
-              <p className="category-count">4 Events</p>
-            </Link>
-            <Link to="/events?cat=Cultural" className="category-card">
-              <div className="category-icon">🎭</div>
-              <h3 className="category-title">Cultural</h3>
-              <p className="category-count">2 Events</p>
-            </Link>
-            <Link to="/events?cat=E-Sports" className="category-card">
-              <div className="category-icon">🎮</div>
-              <h3 className="category-title">E-Sports</h3>
-              <p className="category-count">2 Events</p>
-            </Link>
-            <Link to="/events?cat=Indoor" className="category-card">
-              <div className="category-icon">🗺️</div>
-              <h3 className="category-title">Indoor</h3>
-              <p className="category-count">1 Event</p>
-            </Link>
+        <div className="categories-grid">
+            <Link to="/events?cat=Technical" className="category-card"><div className="category-icon">💻</div><h3>Technical</h3><p>3 Events</p></Link>
+            <Link to="/events?cat=Cultural" className="category-card"><div className="category-icon">🎭</div><h3>Cultural</h3><p>2 Events</p></Link>
+            <Link to="/events?cat=E-Sports" className="category-card"><div className="category-icon">🎮</div><h3>E-Sports</h3><p>3 Events</p></Link>
           </div>
         </ScrollReveal>
       </section>
@@ -300,72 +498,165 @@ function Home() {
   )
 }
 
+import PaymentModal from './PaymentModal.jsx';
+
 function Events() {
   const [filter, setFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
-  
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showModal, setShowModal] = useState(false);
   const displayEvents = eventsData.filter(event => {
     const matchesFilter = filter === 'all' || event.category === filter
     const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         event.subname.toLowerCase().includes(searchTerm.toLowerCase())
+                          event.subname?.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesFilter && matchesSearch
   })
   
+  const navigate = useNavigate();
+  
+  const handleRegisterClick = (event) => {
+    const params = new URLSearchParams({ event: event.id });
+    navigate(`/register?${params.toString()}`);
+  };
+
+  
   return (
-    <section className="section" style={{paddingTop: '120px'}}>
-      <ScrollReveal>
-        <h1 className="section-title">Events</h1>
-        <div className="search-bar">
-          <input 
-            type="text" 
-            placeholder="Search events..." 
-            value={searchTerm} 
-            onChange={(e) => setSearchTerm(e.target.value)} 
-            className="search-input" 
-          />
-        </div>
-        <div className="events-filter">
-          <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All</button>
-          <button className={`filter-btn ${filter === 'Technical' ? 'active' : ''}`} onClick={() => setFilter('Technical')}>Technical</button>
-          <button className={`filter-btn ${filter === 'Cultural' ? 'active' : ''}`} onClick={() => setFilter('Cultural')}>Cultural</button>
-          <button className={`filter-btn ${filter === 'E-Sports' ? 'active' : ''}`} onClick={() => setFilter('E-Sports')}>E-Sports</button>
-          <button className={`filter-btn ${filter === 'Indoor' ? 'active' : ''}`} onClick={() => setFilter('Indoor')}>Indoor</button>
-        </div>
-      </ScrollReveal>
-      
-      <div className="events-grid">
-        {displayEvents.map((event) => (
-          <ScrollReveal key={event.id}>
-            <div className="mission-card">
-              <div className="mission-card-header">
-                <span className="mission-icon">{event.icon}</span>
-                <span className="mission-type">{event.category}</span>
-              </div>
-              <div className="mission-card-body">
-                <h3 className="mission-title">{event.name}</h3>
-                <p className="mission-subtitle">{event.subname}</p>
-                <div className="mission-details">
-                  <p>🕐 {event.startTime} - {event.endTime}</p>
-                  <p>📍 {event.location}</p>
+    <>
+      <section className="section" style={{paddingTop: '120px'}}>
+        <ScrollReveal>
+          <h1 className="section-title">Events</h1>
+
+
+          <div className="search-bar">
+            <input type="text" placeholder="Search events..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="search-input" />
+          </div>
+          <div className="events-filter">
+            <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All</button>
+            <button className={`filter-btn ${filter === 'Technical' ? 'active' : ''}`} onClick={() => setFilter('Technical')}>Technical</button>
+            <button className={`filter-btn stumble-btn ${filter === 'Stumble' ? 'active' : ''}`} onClick={() => setFilter('Stumble')}>Stumble</button>
+            <button className={`filter-btn ${filter === 'Cultural' ? 'active' : ''}`} onClick={() => setFilter('Cultural')}>Cultural</button>
+            <button className={`filter-btn ${filter === 'E-Sports' ? 'active' : ''}`} onClick={() => setFilter('E-Sports')}>E-Sports</button>
+          </div>
+        </ScrollReveal>
+        
+        <div className="events-grid">
+          {displayEvents.map((event) => (
+            <ScrollReveal key={event.id}>
+              <div className="mission-card">
+                <div className="mission-card-header">
+                  <span className="mission-icon">{event.icon}</span>
+                  <span className="mission-type">{event.category}</span>
                 </div>
-              </div>
-              <div className="mission-coordinators">
-                <div className="coordinator-section">
-                  <span className="coord-label">👤 Event Head</span>
-                  <p className="coord-name">{event.head.name}</p>
-                  <div className="coord-actions">
-                    <button className="coord-btn call-btn" onClick={() => window.location.href = `tel:${event.head.phone}`}>📞 Call</button>
-                    <a href={`https://wa.me/${event.head.phone}`} target="_blank" rel="noopener noreferrer" className="coord-btn wa-btn">💬 WhatsApp</a>
+                <div className="mission-card-body">
+                  <h3 className="mission-title">{event.name}</h3>
+{(event.id === 1 || event.id === 2 || event.id === 4 || event.id === 5 || event.id === 6 || event.id === 7 || event.id === 11) && (
+
+
+                    <div className={`event-rules event-id-${event.id}`}>
+                      <p><strong>Rules:</strong></p>
+                      <ul>
+                        {(event.id === 1) && (
+                          <>
+                            <li>Participants must design the interface using raw elements only.</li>
+                            <li>Pre-made UI or website templates are not allowed.</li>
+                            <li>The topic will be revealed at the start of the event.</li>
+                            <li>Total design time is 90 minutes.</li>
+                            <li>Participants must explain their design concept to the judges.</li>
+                          </>
+                        )}
+                        {(event.id === 2) && (
+                          <>
+                            <li>Team size must be between 2–4 members.</li>
+                            <li>Teams must bring their own laptops.</li>
+                            <li>Projects must be developed during the event itself.</li>
+                            <li>Open-source tools, APIs, and frameworks are allowed.</li>
+                            <li>Teams must submit code, documentation, and a short presentation.</li>
+                          </>
+                        )}
+                        {(event.id === 4) && (
+                          <>
+
+                            <li>Only group performances are allowed with 4–8 members per team, and all members must be present at the reporting time.</li>
+                            <li>Each group must perform within a strict time limit of 3–5 minutes — exceeding 5 minutes results in negative marking, performing under 3 minutes may reduce scores, and music will be stopped once time is over.</li>
+                            <li>Performances will be judged on energy & stage presence, synchronization & coordination, creativity & choreography, GTA theme justification, and audience impact.</li>
+                            <li>GTA-style elements are encouraged, and safe hand-held props are allowed; however, vulgarity, fire, liquids, sharp objects, or any action that may damage stage or equipment will lead to disqualification.</li>
+                            <li>Discipline is mandatory — misbehavior, offensive gestures, or arguments will cause instant disqualification, and judges' and organizers' decisions are final</li>
+
+                          </>
+                        )}
+                        {(event.id === 5) && (
+                          <>
+                            <li>Individual or pair participation is allowed.</li>
+                            <li>Performance time must be between 1–2 minutes.</li>
+                            <li>Music must be submitted before the performance.</li>
+                            <li>Proper stage discipline must be maintained.</li>
+                            <li>Submission & Time Limit: Music must be submitted in advance, and each performance must be completed within 1–2 minutes maximum.</li>
+                            <li>Code of Conduct: Vulgar clothing or gestures are strictly prohibited. Participants must maintain proper stage discipline and presentation.</li>
+                            <li>Props Policy: Only hand-held props such as a jacket, cap, sunglasses, fake money, or toy phone are allowed.</li>
+                            <li>Judging Authority: All judges' and organizers' decisions are final and binding.</li>
+                            <li>Judging Criteria: Performances will be evaluated based on walk & posture, confidence & attitude, costume & styling, and facial expressions & character portrayal.</li>
+                          </>
+                        )}
+                        {(event.id === 7) && (
+                          <>
+                            <li>Teams must consist of 4 players.</li>
+                            <li>Matches will be played in custom rooms.</li>
+                            <li>Points will be based on placement and kills.</li>
+                            <li>Players must use their registered game ID.</li>
+                            <li>Cheating, teaming, or hacking will lead to disqualification.</li>
+                          </>
+                        )}
+                        {(event.id === 11) && (
+                          <>
+                            <li>Players must use their registered IGN, report on time, and avoid intentional teaming, ghosting, or sharing match details; late entry may lead to disqualification.</li>
+                            <li>The tournament will be played in Custom Party / Solo Elimination mode on Stumble Guys mobile</li>
+                            <li>Maintain sportsmanlike behavior; abusive, toxic conduct or cheating of any kind will result in immediate disqualification.</li>
+                            <li>Participants are responsible for their own device, internet, and power matches will not be restarted due to individual technical issues or game glitches.</li>
+                            <li>Players can play multiple times by paying the entry fee for each attempt; every entry is treated as a new game.</li>
+                            <li>Players may be disqualified for cheating, rule violations, misbehavior, absence at match time, or sharing room codes or credentials.</li>
+                            <li>The organizers' decisions, which are final.</li>
+                          </>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                        {(event.id === 6) && (
+                          <>
+                            <li>Only solo performances are allowed, and participants must be present at the reporting time to confirm their participation.</li>
+                            <li>Each participant must perform within a strict time limit of 3 minutes. Exceeding the time limit may result in negative marking or disqualification, and the track may be stopped once the allotted time is over.</li>
+                            <li>All performances must be completely live, and lip-syncing or pre-recorded vocals are not permitted. </li>
+                            <li>Participants must bring their own karaoke track in a compatible format, and they may also bring their own musical instrument if they wish to perform with live accompaniment.</li>
+                            <li>Performances will be judged on voice quality, pitch accuracy, rhythm and timing, expression, song selection, confidence, and overall stage presence.</li>
+                            <li>Participants must maintain proper discipline and decorum. The use of inappropriate lyrics, offensive content, or any unfair practices will lead to immediate disqualification, and the decisions of the judges and organizers will be final and binding.</li>
+                          </>
+                        )}
+
+                  <p className="mission-subtitle">{event.subname}</p>
+                  <div className="mission-details">
+                    <p>🕐 {event.startTime} - {event.endTime}</p>
+                    <p>📍 {event.location}</p>
                   </div>
                 </div>
+                <div className="mission-coordinators">
+                  <div className="coordinator-section">
+                    <span className="coord-label">👤 Event Head</span>
+                    <p className="coord-name">{event.head.name}</p>
+                    <div className="coord-actions">
+                      <button className="coord-btn call-btn" onClick={() => window.location.href = `tel:${event.head.phone}`}>📞 Call</button>
+                      <a href={`https://wa.me/${event.head.phone}`} target="_blank" rel="noopener noreferrer" className="coord-btn wa-btn">💬 WhatsApp</a>
+                    </div>
+                  </div>
+                </div>
+                <button className="mission-register-btn" onClick={() => handleRegisterClick(event)}>Register Now</button>
               </div>
-              <Link to={`/register?event=${event.id}`} className="mission-register-btn">Register Now</Link>
-            </div>
-          </ScrollReveal>
-        ))}
-      </div>
-      {displayEvents.length === 0 && <p className="no-events">No events found matching your search.</p>}
-    </section>
+            </ScrollReveal>
+          ))}
+        </div>
+        {displayEvents.length === 0 && <p className="no-events">No events found matching your search.</p>}
+      </section>
+
+    </>
   )
 }
 
@@ -395,14 +686,24 @@ function Schedule() {
   )
 }
 
+// Registration - API Integrated
 function Registration() {
-  const [formData, setFormData] = useState({name: '', email: '', phone: '', college: '', event: '', teamName: '', transactionId: ''})
+  const [formData, setFormData] = useState({name: '', email: '', phone: '', college: 'AIMSR', event: '', teamName: '', transactionId: ''})
   const [submitted, setSubmitted] = useState(false)
   const [participantId, setParticipantId] = useState('')
   const [screenshot, setScreenshot] = useState(null)
   const [screenshotPreview, setScreenshotPreview] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const navigate = useNavigate()
+  const [category, setCategory] = useState('')
+  const [selectedEvent, setSelectedEvent] = useState(null)
+  const [teamMembers, setTeamMembers] = useState([{ name: '', email: '' }])
+  const [qrCode, setQrCode] = useState('')
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  
+  const filteredEvents = eventsData.filter(event => category === '' || event.category === category)
   
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -414,99 +715,138 @@ function Registration() {
     }
   }
   
-  const handleFileSelect = (file) => {
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB!')
-        return
+  const generateQR = async (amount) => {
+    if (amount > 0) {
+      const upiLink = `upi://pay?pa=ashutoshdp2003@okaxis&pn=AIMX Events ${selectedEvent?.name || 'Event'}&am=${amount}&cu=INR&tn=AIMX ${selectedEvent?.name || 'Event'}`;
+      try {
+        const url = await QRCode.toDataURL(upiLink);
+        setQrCode(url);
+      } catch (error) {
+        console.error('QR generation failed:', error);
+        setQrCode('');
       }
-      setScreenshot(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setScreenshotPreview(reader.result)
-      }
-      reader.readAsDataURL(file)
+    } else {
+      setQrCode('');
     }
+  };
+
+  
+  const handleCategoryChange = (e) => {
+    const newCategory = e.target.value
+    setCategory(newCategory)
+    setSelectedEvent(null)
+    setFormData(prev => ({...prev, event: ''}))
+    setTeamMembers([{ name: '', email: '' }])
+  }
+  
+  const handleEventChange = (e) => {
+    const eventId = parseInt(e.target.value)
+    const event = eventsData.find(ev => ev.id === eventId)
+setFormData(prev => ({...prev, event: eventId.toString(), eventName: event.name, eventSubname: event.subname || '' }))
+    setSelectedEvent(event)
+    generateQR(event.price)
+    // Init team members
+    const size = event.teamSize || 1
+    setTeamMembers(Array.from({length: size}, (_, i) => ({ name: '', email: '' })))
+  }
+  
+  const handleTeamMemberChange = (index, field, value) => {
+    const newMembers = [...teamMembers]
+    newMembers[index][field] = value
+    setTeamMembers(newMembers)
+  }
+  
+  const handleFileSelect = (file) => {
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB!')
+      return
+    }
+    setScreenshot(file)
+    const reader = new FileReader()
+    reader.onloadend = () => setScreenshotPreview(reader.result)
+    reader.readAsDataURL(file)
   }
   
   const handleDrop = (e) => {
     e.preventDefault()
     setIsDragging(false)
     const file = e.dataTransfer.files[0]
-    if (file && file.type.startsWith('image/')) {
-      handleFileSelect(file)
-    }
+    if (file?.type.startsWith('image/')) handleFileSelect(file)
   }
   
-  const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true) }
-  const handleDragLeave = (e) => { e.preventDefault(); setIsDragging(false) }
-  const handleFileInput = (e) => { if (e.target.files[0]) handleFileSelect(e.target.files[0]) }
-  const removeScreenshot = () => { setScreenshot(null); setScreenshotPreview(null) }
-  
-    const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.transactionId || formData.transactionId.length !== 12) {
-      alert('Transaction ID must be exactly 12 digits!')
-      return
-    }
-    if (!screenshot) {
-      alert('Please upload payment screenshot!')
+    
+    // Validate lead
+    if (!formData.name || !formData.email || !formData.phone || !formData.college || !selectedEvent) {
+      alert('Please fill all required lead fields and select an event!')
       return
     }
     
-    const id = 'AIMX-' + Math.floor(Math.random() * 900 + 100)
-    const selectedEvent = eventsData.find(ev => ev.id === parseInt(formData.event))
+    // Validate team members
+    for (let member of teamMembers) {
+      if (!member.name || !member.email) {
+        alert('Please fill all team member details!')
+        return
+      }
+    }
+    
+    // Payment validation
+    if (selectedEvent.price > 0) {
+      if (!formData.transactionId || formData.transactionId.length !== 12) {
+        alert('Transaction ID must be exactly 12 digits!')
+        return
+      }
+      if (!screenshot) {
+        alert('Please upload payment screenshot!')
+        return
+      }
+    }
+    
+    setLoading(true)
+    setError('')
     
     const newRegistration = {
-      id: id,
-      participantId: id,
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
       college: formData.college,
+      category: category,
       eventId: formData.event,
-      eventName: selectedEvent ? selectedEvent.name : '',
-      eventSubname: selectedEvent ? selectedEvent.subname : '',
-      teamName: formData.teamName,
-      transactionId: formData.transactionId,
-      amount: selectedEvent ? eventPrices[selectedEvent.id] : 0,
-      status: 'pending',
-      screenshot: screenshotPreview,
+      eventName: selectedEvent.name,
+      eventSubname: selectedEvent.subname || '',
+      price: selectedEvent.price,
+      amount: selectedEvent.price,
+      teamSize: selectedEvent.teamSize,
+      teamMembers: teamMembers, // Array of {name, email}
+      teamName: formData.teamName || '',
+      transactionId: selectedEvent.price > 0 ? formData.transactionId : 'FREE',
+      screenshot: selectedEvent.price > 0 ? screenshotPreview : null,
       date: new Date().toLocaleDateString()
     }
     
-    // Save to localStorage first
-    const existingRegs = JSON.parse(localStorage.getItem('aimx_registrations') || '[]')
-    const updatedRegs = [...existingRegs, newRegistration]
-    localStorage.setItem('aimx_registrations', JSON.stringify(updatedRegs))
-    
-    // Send confirmation emails
-    const emailSent = await sendConfirmationEmail(newRegistration)
-    if (emailSent) {
-      alert('✅ Registration successful! Confirmation email sent.')
-    } else {
-      console.warn('⚠️ Registration saved but email failed. Check EmailJS config.')
-      alert('✅ Registration saved! (Email notification may have failed - check console)')
+    try {
+      const response = await postRegistration(newRegistration)
+      setParticipantId(response.participantId)
+      alert('✅ Registration successful! ID: ' + response.participantId + '. Check email for details.')
+      navigate(`/success/${response.participantId}`)
+    } catch (err) {
+      console.error('API failed:', err)
+      alert('❌ Registration failed. Please try again.')
+    } finally {
+      setLoading(false)
     }
-    
-    setParticipantId(id)
-    setSubmitted(true)
   }
-  
-  const selectedEvent = eventsData.find(e => e.id === parseInt(formData.event))
-  const eventFee = selectedEvent ? eventPrices[selectedEvent.id] : 0
   
   if (submitted) {
     return (
-      <section className="section" style={{paddingTop: '120px', minHeight: '80vh'}}>
+      <section className="section" style={{paddingTop: '120px'}}>
         <ScrollReveal>
           <div className="success-card">
-            <h2>Registration Successful!</h2>
-            <p>Your Participant ID:</p>
-            <div className="participant-id">{participantId}</div>
-            <p>Status: <span style={{color: '#FFC107', fontWeight: 'bold'}}>PENDING</span> - Waiting for admin approval</p>
-            <p>Use this ID to check your registration status.</p>
-            <button className="btn btn-primary" style={{marginTop: '20px'}} onClick={() => navigate('/login')}>Go to Login</button>
+            <h2 style={{color: "white", fontSize: "2.5rem"}}>Registration Successful!</h2>
+            <h2 style={{color: "white", fontSize: "3rem", margin: "20px 0"}}>{participantId}</h2>
+            <p style={{color: "white", fontSize: "1.5rem"}}>Status: <span style={{color: '#FFC107', fontWeight: 'bold'}}>PENDING</span></p>
+            <button className="btn btn-primary" onClick={() => navigate('/login')}>Check Status</button>
           </div>
         </ScrollReveal>
       </section>
@@ -514,145 +854,236 @@ function Registration() {
   }
   
   return (
-    <section className="section events-page" style={{paddingTop: '120px'}}>
+    <section className="section" style={{paddingTop: '120px'}}>
       <ScrollReveal>
         <div className="registration-container">
           <form className="registration-form" onSubmit={handleSubmit}>
             <h2 className="form-title">Register for AIMX 2026</h2>
-            
-            {/* Payment Information */}
-            <div style={{
-              background: 'rgba(255,107,53,0.1)', 
-              border: '2px solid var(--neon-orange)', 
-              borderRadius: '16px', 
-              padding: '25px', 
-              marginBottom: '30px'
-            }}>
-              <h3 style={{color: 'var(--neon-orange)', marginBottom: '18px', fontSize: '1.3rem', fontFamily: 'var(--font-display)', letterSpacing: '2px'}}>💳 Payment Information</h3>
-              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '18px'}}>
-                <div style={{background: 'rgba(0,0,0,0.3)', padding: '18px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)'}}>
-                  <p style={{color: 'var(--neon-cyan)', fontSize: '0.9rem', marginBottom: '8px'}}>📱 UPI Payment</p>
-                  <p style={{color: '#fff', fontSize: '1.15rem', fontWeight: 'bold'}}>ashutoshdp2003@okaxis</p>
-                </div>
-                <div style={{background: 'rgba(0,0,0,0.3)', padding: '18px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)'}}>
-                  <p style={{color: 'var(--neon-cyan)', fontSize: '0.9rem', marginBottom: '8px'}}>🏦 Bank Transfer</p>
-                  <p style={{color: '#fff', fontSize: '0.95rem'}}><strong>Acc No:</strong> 5346933814</p>
-                  <p style={{color: '#fff', fontSize: '0.95rem'}}><strong>IFSC:</strong> KKBK0001465</p>
-                </div>
-              </div>
-              {eventFee > 0 && (
-                <div style={{background: 'rgba(0,212,255,0.1)', border: '2px solid var(--neon-cyan)', borderRadius: '12px', padding: '18px', marginTop: '18px', textAlign: 'center'}}>
-                  <p style={{color: 'var(--neon-cyan)', fontSize: '1.1rem'}}>Event Fee: <strong style={{fontSize: '1.4rem'}}>₹{eventFee}</strong></p>
-                </div>
-              )}
-            </div>
-            
-            <h3 style={{color: 'var(--neon-cyan)', marginBottom: '18px', fontFamily: 'var(--font-heading)', letterSpacing: '2px'}}>Personal Details</h3>
+
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Full Name *</label>
-                <input type="text" name="name" className="form-input" placeholder="Enter your name" value={formData.name} onChange={handleChange} required />
+                <input type="text" name="name" className="form-input" value={formData.name} onChange={handleChange} required />
               </div>
               <div className="form-group">
                 <label className="form-label">Email *</label>
-                <input type="email" name="email" className="form-input" placeholder="Enter your email" value={formData.email} onChange={handleChange} required />
+                <input type="email" name="email" className="form-input" value={formData.email} onChange={handleChange} required />
               </div>
             </div>
+
             <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Phone *</label>
-                <input type="tel" name="phone" className="form-input" placeholder="Phone number" value={formData.phone} onChange={handleChange} required />
-              </div>
               <div className="form-group">
                 <label className="form-label">College *</label>
-                <input type="text" name="college" className="form-input" placeholder="College name" value={formData.college} onChange={handleChange} required />
+                <input
+                  type="text"
+                  name="college"
+                  className="form-input"
+                  value={formData.college}
+                  onChange={handleChange}
+                  placeholder="Your College"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Mobile No *</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  className="form-input"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="10 digit mobile number"
+                  required
+                />
               </div>
             </div>
-            
-            <h3 style={{color: 'var(--neon-cyan)', marginBottom: '18px', marginTop: '25px', fontFamily: 'var(--font-heading)', letterSpacing: '2px'}}>Event Details</h3>
+
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Select Event *</label>
-                <select name="event" className="form-select" value={formData.event} onChange={handleChange} required>
-                  <option value="">Choose event</option>
-                  {eventsData.map(e => (
-                    <option key={e.id} value={e.id}>{e.name} - {e.subname} (₹{eventPrices[e.id]})</option>
-                  ))}
+                <label className="form-label">Category *</label>
+                <select
+                  className="form-input"
+                  value={category}
+                  onChange={handleCategoryChange}
+                  required
+                >
+                  <option value="">Select Category</option>
+                  <option value="Technical">[ TECHNICAL ]</option>
+                  <option value="Cultural">[ CULTURAL ]</option>
+                  <option value="E-Sports">[ E-SPORTS ]</option>
+                  <option value="AIMX Talks">[ AIMX TALKS ]</option>
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Team Name (Optional)</label>
-                <input type="text" name="teamName" className="form-input" placeholder="Team name" value={formData.teamName} onChange={handleChange} />
-              </div>
-            </div>
-            
-            <h3 style={{color: 'var(--neon-cyan)', marginBottom: '18px', marginTop: '25px', fontFamily: 'var(--font-heading)', letterSpacing: '2px'}}>💰 Payment Details (Mandatory)</h3>
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Transaction ID * (12 digits)</label>
-                <input type="text" name="transactionId" className="form-input" placeholder="Enter 12-digit transaction ID" value={formData.transactionId} onChange={handleChange} required maxLength={12} />
-                <small style={{color: 'rgba(255,255,255,0.5)'}}>{formData.transactionId.length}/12 digits</small>
-              </div>
-            </div>
-            
-            <h3 style={{color: 'var(--neon-cyan)', marginBottom: '18px', marginTop: '25px', fontFamily: 'var(--font-heading)', letterSpacing: '2px'}}>📷 Payment Screenshot (Mandatory)</h3>
-            <div 
-              onDrop={handleDrop} 
-              onDragOver={handleDragOver} 
-              onDragLeave={handleDragLeave} 
-              onClick={() => document.getElementById('screenshot-input').click()}
-              style={{
-                border: isDragging ? '2px dashed var(--neon-cyan)' : screenshotPreview ? '2px solid var(--neon-orange)' : '2px dashed rgba(255,255,255,0.2)', 
-                borderRadius: '16px', 
-                padding: screenshotPreview ? '15px' : '50px', 
-                textAlign: 'center', 
-                cursor: 'pointer', 
-                background: isDragging ? 'rgba(0, 212, 255, 0.1)' : 'rgba(0,0,0,0.2)', 
-                transition: 'all 0.3s ease', 
-                marginBottom: '25px'
-              }}
-            >
-              {screenshotPreview ? (
-                <div style={{position: 'relative', display: 'inline-block'}}>
-                  <img src={screenshotPreview} alt="Payment Screenshot" style={{maxWidth: '100%', maxHeight: '250px', borderRadius: '12px', border: '2px solid var(--neon-orange)'}} />
-                  <button 
-                    type="button" 
-                    onClick={(e) => {e.stopPropagation(); removeScreenshot()}} 
-                    style={{
-                      position: 'absolute', 
-                      top: '-12px', 
-                      right: '-12px', 
-                      background: '#ff4444', 
-                      color: '#fff', 
-                      border: 'none', 
-                      borderRadius: '50%', 
-                      width: '32px', 
-                      height: '32px', 
-                      cursor: 'pointer', 
-                      fontWeight: 'bold',
-                      fontSize: '1.2rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    ✕
-                  </button>
+                <div style={{height: '68px', display: 'flex', alignItems: 'end'}}>
                 </div>
-              ) : (
-                <>
-                  <div style={{fontSize: '3.5rem', marginBottom: '15px'}}>📁</div>
-                  <p style={{color: '#fff', marginBottom: '8px'}}>Drag & drop your payment screenshot here</p>
-                  <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.95rem'}}>OR</p>
-                  <button type="button" className="btn" style={{fontSize: '0.95rem', padding: '10px 25px', marginTop: '10px'}}>Browse Files</button>
-                </>
-              )}
+              </div>
             </div>
-            <input type="file" id="screenshot-input" accept="image/*" onChange={handleFileInput} style={{display: 'none'}} />
+
+            {category && (
+              <>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Event *</label>
+                    <select
+                      name="event"
+                      className="form-input"
+                      value={formData.event}
+                      onChange={handleEventChange}
+                      required
+                    >
+                      <option value="">Select Event</option>
+                      {filteredEvents.map((event) => (
+                        <option key={event.id} value={event.id}>
+                          `[${event.category}] ${event.name} - ${event.feeText}`
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group price-display">
+                    {selectedEvent && (
+                      <div className="event-price-badge">
+                        <span className="price-icon">💰</span>
+                        <span className="price-amount">₹{selectedEvent.price}</span>
+                        <span className="price-team">({selectedEvent.teamSize} members)</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Dynamic Team Members */}
+                <div className="team-members-section">
+                  <h3 className="team-title">
+                    <span className="team-icon">👥</span>
+                    Team Members ({teamMembers.length})
+                  </h3>
+                  <div className="team-members-grid">
+                    {teamMembers.map((member, index) => (
+                      <div key={index} className="team-member-row form-row">
+                        <div className="form-group">
+                          <label className="form-label">Member {index + 1} Name *</label>
+                          <input
+                            type="text"
+                            placeholder={`Member ${index + 1} Name`}
+                            className="form-input"
+                            value={member.name}
+                            onChange={(e) => handleTeamMemberChange(index, 'name', e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Member {index + 1} Email *</label>
+                          <input
+                            type="email"
+                            placeholder={`Member ${index + 1} Email`}
+                            className="form-input"
+                            value={member.email}
+                            onChange={(e) => handleTeamMemberChange(index, 'email', e.target.value)}
+                            required
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
             
-            <div style={{textAlign: 'center', marginTop: '35px'}}>
-              <button type="submit" className="btn btn-primary" style={{fontSize: '1.2rem', padding: '18px 60px'}}>Submit Registration</button>
+            <div className="form-group">
+              <label className="form-label">Team Name (Optional)</label>
+              <input
+                type="text"
+                name="teamName"
+                className="form-input"
+                value={formData.teamName}
+                onChange={handleChange}
+                placeholder="Enter team name (if applicable)"
+              />
             </div>
+
+            {selectedEvent && selectedEvent.price > 0 && (
+              <>
+                <div className="upi-qr-section">
+                  <h4 className="qr-title">Pay with UPI</h4>
+                  <div className="upi-qr-container">
+                    <div className="payment-event">{selectedEvent.name}</div>
+                    <div className="qr-price">₹{selectedEvent.price}</div>
+                    <p className="upi-id-small">UPI ID: ashutoshdp2003@okaxis</p>
+                    <div className="qr-container-reg">
+                      {qrCode ? (
+                        <img src={qrCode} alt="Dynamic UPI QR Code" className="dynamic-qr pay-small" />
+                      ) : (
+                        <div className="qr-placeholder">
+                          <p>Select event to generate QR</p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="qr-instruction">Scan to pay ₹{selectedEvent?.price || 0} (pre-filled amount)</p>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Transaction ID * (12 digits)</label>
+
+                  <input
+                    type="text"
+                    name="transactionId"
+                    className="form-input"
+                    value={formData.transactionId}
+                    onChange={handleChange}
+                    placeholder="Enter 12-digit transaction ID"
+                    maxLength="12"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Transaction Screenshot *</label>
+                  <div
+                    className={`upload-dropbox ${isDragging ? 'dragging' : ''}`}
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      setIsDragging(true)
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleDrop}
+                    onClick={() => document.getElementById('screenshotInput')?.click()}
+                  >
+                    {screenshotPreview ? (
+                      <div className="upload-preview">
+                        <img src={screenshotPreview} alt="Transaction screenshot preview" className="preview-image" />
+                        <p>Click or drop another screenshot to replace</p>
+                      </div>
+                    ) : (
+                      <div className="upload-placeholder">
+                        <p>Drop transaction screenshot here or click to upload</p>
+                        <small>PNG, JPG, JPEG up to 5MB</small>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    id="screenshotInput"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleFileSelect(file)
+                    }}
+                  />
+                </div>
+              </>
+            )}
+            {selectedEvent && selectedEvent.price === 0 && (
+              <div className="free-payment-note">
+                <p style={{color: '#39FF14', textAlign: 'center', fontSize: '1.2rem', padding: '20px', background: 'rgba(57,255,20,0.1)', borderRadius: '12px', border: '2px solid #39FF14'}}>
+                  This event is free. No payment required.
+                </p>
+              </div>
+            )}
+
+
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Submitting...' : 'Submit Registration'}
+            </button>
           </form>
         </div>
       </ScrollReveal>
@@ -660,106 +1091,93 @@ function Registration() {
   )
 }
 
+// Login, ParticipantDashboard, AdminDashboard - API integrated similarly
 function Login() {
   const [loginType, setLoginType] = useState('participant')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [participantId, setParticipantId] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   
-const handleAdminLogin = (e) => {
+  const handleAdminLogin = async (e) => {
     e.preventDefault()
-    if (username === 'adminaimx2026' && password === 'aimx@aimsr111') {
+    setError('')
+    setLoading(true)
+    try {
+      await adminLogin(username, password)
       localStorage.setItem('adminAuth', 'true')
       navigate('/admin')
-    } else {
+    } catch {
       setError('Invalid admin credentials!')
+    } finally {
+      setLoading(false)
     }
   }
   
-  const handleParticipantLogin = (e) => {
+  const handleParticipantLogin = async (e) => {
     e.preventDefault()
-    const regs = JSON.parse(localStorage.getItem('aimx_registrations') || '[]')
-    const reg = regs.find(r => r.participantId === participantId)
-    if (reg) {
-      localStorage.setItem('participantAuth', participantId)
-      navigate('/participant')
-    } else {
-      setError('Invalid Participant ID!')
+    setError('')
+    setLoading(true)
+    try {
+      const reg = await getRegistrationById(participantId.trim())
+      if (reg) {
+        localStorage.setItem('participantAuth', reg.participantId)
+        navigate('/participant')
+      } else {
+        setError('Invalid Participant ID!')
+      }
+    } catch {
+      setError('API error - check connection')
+    } finally {
+      setLoading(false)
     }
   }
   
   return (
-    <section className="section login-page" style={{paddingTop: '120px', minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+    <section className="section login-page" style={{paddingTop: '120px'}}>
       <ScrollReveal>
-        <div className="registration-form" style={{maxWidth: '480px', width: '100%'}}>
-          <h2 className="form-title">Login to AIMX 2026</h2>
-          <div style={{display: 'flex', gap: '18px', marginBottom: '35px'}}>
-            <button 
-              type="button" 
-              className={`btn ${loginType === 'participant' ? 'btn-primary' : ''}`} 
-              style={{flex: 1}}
-              onClick={() => {setLoginType('participant'); setError('')}}
-            >
-              Participant
-            </button>
-            <button 
-              type="button" 
-              className={`btn ${loginType === 'admin' ? 'btn-primary' : ''}`} 
-              style={{flex: 1}}
-              onClick={() => {setLoginType('admin'); setError('')}}
-            >
-              Admin
-            </button>
+        <div className="registration-container">
+          <div className="registration-form">
+            <h2 className="form-title">Login Portal</h2>
+
+            <div className="events-filter" style={{ marginBottom: '30px' }}>
+              <button className={`filter-btn ${loginType === 'participant' ? 'active' : ''}`} onClick={() => setLoginType('participant')}>Participant Login</button>
+              <button className={`filter-btn ${loginType === 'admin' ? 'active' : ''}`} onClick={() => setLoginType('admin')}>Admin Login</button>
+            </div>
+
+            {error && <p style={{ color: '#ff8080', marginBottom: '16px', textAlign: 'center' }}>{error}</p>}
+
+            {loginType === 'participant' ? (
+              <form onSubmit={handleParticipantLogin}>
+                <div className="form-group">
+                  <label className="form-label">Participant ID</label>
+                  <input className="form-input" value={participantId} onChange={(e) => setParticipantId(e.target.value)} placeholder="e.g. AIMX-123" required />
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Checking...' : 'Login as Participant'}</button>
+              </form>
+            ) : (
+              <form onSubmit={handleAdminLogin} className="admin-login-form">
+                <div className="admin-login-head">
+                  <div className="admin-shield">🛡️</div>
+                  <div>
+                    <h3 className="admin-login-title">Admin Control Access</h3>
+                    <p className="admin-login-subtitle">Authorized personnel only</p>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Admin Username</label>
+                  <input className="form-input admin-input" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Admin Password</label>
+                  <input className="form-input admin-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                </div>
+                <button type="submit" className="btn btn-primary admin-login-btn" disabled={loading}>{loading ? 'Logging in...' : 'Login as Admin'}</button>
+              </form>
+            )}
           </div>
-          
-          {loginType === 'participant' ? (
-            <form onSubmit={handleParticipantLogin}>
-              <div className="form-group">
-                <label className="form-label">Participant ID</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  placeholder="Enter your Participant ID" 
-                  value={participantId} 
-                  onChange={(e) => setParticipantId(e.target.value)} 
-                  required 
-                />
-              </div>
-              {error && <p style={{color: '#ff4444', marginBottom: '18px'}}>{error}</p>}
-              <button type="submit" className="btn btn-neon" style={{width: '100%', marginTop: '20px'}}>Check Status</button>
-              <p style={{textAlign: 'center', marginTop: '15px'}}>New user? <Link to="/register" style={{color: 'var(--neon-cyan)'}}>Register here</Link></p>
-            </form>
-          ) : (
-            <form onSubmit={handleAdminLogin}>
-              <div className="form-group">
-                <label className="form-label">Username</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  placeholder="Enter username" 
-                  value={username} 
-                  onChange={(e) => setUsername(e.target.value)} 
-                  required 
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Password</label>
-                <input 
-                  type="password" 
-                  className="form-input" 
-                  placeholder="Enter password" 
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)} 
-                  required 
-                />
-              </div>
-              {error && <p style={{color: '#ff4444', marginBottom: '18px'}}>{error}</p>}
-              <button type="submit" className="btn btn-neon" style={{width: '100%', marginTop: '20px'}}>Admin Login</button>
-              <p style={{textAlign: 'center', marginTop: '22px', color: 'rgba(255,255,255,0.6)'}}>Demo: adminaimx2026 / aimx@aimsr111</p>
-            </form>
-          )}
         </div>
       </ScrollReveal>
     </section>
@@ -767,80 +1185,114 @@ const handleAdminLogin = (e) => {
 }
 
 function ParticipantDashboard() {
-  const [participantId] = useState(() => localStorage.getItem('participantAuth'))
-  const [registration, setRegistration] = useState(null)
+  const [participant, setParticipant] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [qrUrl, setQrUrl] = useState('')
   const navigate = useNavigate()
-  
+
   useEffect(() => {
-    if (!participantId) {
-      navigate('/login')
-      return
+    const load = async () => {
+      const id = localStorage.getItem('participantAuth')
+      if (!id) {
+        navigate('/login')
+        return
+      }
+      const data = await getRegistrationById(id)
+      if (!data) {
+        localStorage.removeItem('participantAuth')
+        navigate('/login')
+        return
+      }
+      setParticipant(data)
+      setLoading(false)
     }
-    const regs = JSON.parse(localStorage.getItem('aimx_registrations') || '[]')
-    const reg = regs.find(r => r.participantId === participantId)
-    setRegistration(reg)
-  }, [participantId, navigate])
-  
-  const handleLogout = () => {
-    localStorage.removeItem('participantAuth')
-    navigate('/login')
-  }
-  
-  if (!registration) {
-    return (
-      <section className="section" style={{paddingTop: '120px'}}>
-        <ScrollReveal>
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px'}}>
-            <h1 className="section-title" style={{marginBottom: 0}}>My Registration</h1>
-            <button className="btn" onClick={handleLogout}>Logout</button>
-          </div>
-          <div className="success-card">
-            <h2>Welcome!</h2>
-            <p>Your Participant ID: {participantId}</p>
-            <p style={{color: '#ff4444'}}>No registration found!</p>
-          </div>
-        </ScrollReveal>
-      </section>
-    )
-  }
-  
-  const getStatusColor = (status) => {
-    if (status === 'approved') return '#39FF14'
-    if (status === 'rejected') return '#FF0000'
-    return '#FFC107'
-  }
-  
+    load()
+  }, [navigate])
+
+  useEffect(() => {
+    if (participant?.status === 'approved' && !qrUrl) {
+      const generateQR = async () => {
+        try {
+          const url = await QRCode.toDataURL(participant.participantId)
+          setQrUrl(url)
+        } catch (error) {
+          console.error('QR gen error:', error)
+        }
+      }
+      generateQR()
+    }
+  }, [participant, qrUrl])
+
+  if (loading) return <section className="section" style={{paddingTop: '120px'}}><p>Loading...</p></section>
+
+  const statusClass = participant?.status === 'approved'
+    ? 'approved'
+    : participant?.status === 'rejected'
+      ? 'rejected'
+      : 'pending'
+
+
   return (
-    <section className="section" style={{paddingTop: '120px'}}>
+    <section className="section participant-page" style={{paddingTop: '120px'}}>
       <ScrollReveal>
-        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px'}}>
-          <h1 className="section-title" style={{marginBottom: 0}}>My Registration</h1>
-          <button className="btn" onClick={handleLogout}>Logout</button>
-        </div>
-        <div className="success-card">
-          <h2>Welcome, {registration.name}!</h2>
-          <p>Participant ID: <strong>{registration.participantId}</strong></p>
-          
-          <div style={{marginTop: '25px', padding: '25px', background: 'rgba(0,0,0,0.3)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)'}}>
-            <h3 style={{color: 'var(--neon-cyan)', marginBottom: '18px', fontFamily: 'var(--font-display)', letterSpacing: '2px'}}>Registration Details</h3>
-            <p><strong>Event:</strong> {registration.eventName} - {registration.eventSubname}</p>
-            <p><strong>College:</strong> {registration.college}</p>
-            <p><strong>Phone:</strong> {registration.phone}</p>
-            <p><strong>Email:</strong> {registration.email}</p>
-            {registration.teamName && <p><strong>Team:</strong> {registration.teamName}</p>}
-            <p><strong>Amount Paid:</strong> ₹{registration.amount}</p>
-            <p><strong>Transaction ID:</strong> {registration.transactionId}</p>
-            <p><strong>Registration Date:</strong> {registration.date}</p>
+        <div className="participant-dashboard-card">
+          <div className="participant-dashboard-header">
+            <h2 style={{color: 'white', fontSize: '2.5rem'}}>Participant Dashboard</h2>
+            <span className={`status-badge ${statusClass}`}>{String(participant.status || 'pending').toUpperCase()}</span>
           </div>
-          
-          <div style={{marginTop: '25px', padding: '25px', background: 'rgba(0,0,0,0.3)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)'}}>
-            <p><strong>Status:</strong> <span style={{
-              color: getStatusColor(registration.status), 
-              fontWeight: 'bold', 
-              fontSize: '1.3rem', 
-              textTransform: 'uppercase',
-              textShadow: `0 0 15px ${getStatusColor(registration.status)}`
-            }}>{registration.status}</span></p>
+
+          <h2 style={{color: "white", fontSize: "3rem", margin: "20px 0"}}>
+            {participant?.participantId}
+          </h2>
+
+          <div className="participant-details-grid">
+            <div className="participant-detail-item"><span>Full Name</span><strong>{participant.name || '-'}</strong></div>
+            <div className="participant-detail-item"><span>Email</span><strong>{participant.email || '-'}</strong></div>
+            <div className="participant-detail-item"><span>Mobile</span><strong>{participant.phone || '-'}</strong></div>
+            <div className="participant-detail-item"><span>College</span><strong>{participant.college || 'AIMSR'}</strong></div>
+            <div className="participant-detail-item"><span>Event</span><strong>{participant.eventName || '-'} {participant.eventSubname ? `- ${participant.eventSubname}` : ''}</strong></div>
+            <div className="participant-detail-item"><span>Team Name</span><strong>{participant.teamName || '-'}</strong></div>
+            <div className="participant-detail-item"><span>Transaction ID</span><strong>{participant.transactionId || '-'}</strong></div>
+            <div className="participant-detail-item"><span>Amount Paid</span><strong>₹{participant.amount ?? 0}</strong></div>
+            <div className="participant-detail-item"><span>Registration Date</span><strong>{participant.date || '-'}</strong></div>
+          </div>
+
+          {participant.screenshot && (
+            <div className="participant-screenshot-wrap">
+              <h3>Payment Screenshot</h3>
+              <img src={participant.screenshot} alt="Payment screenshot" className="participant-screenshot-image" />
+              <a className="mission-register-btn" href={participant.screenshot} download={`txn-${participant.participantId}.png`}>
+                Download Screenshot
+              </a>
+            </div>
+          )}
+
+          {participant.status === 'approved' && qrUrl && (
+            <div className="qr-ticket-section">
+              <h3 style={{color: "white", fontSize: "2rem", marginBottom: "20px"}}>
+                🎟 Your Entry QR Ticket
+              </h3>
+              <div className="qr-container">
+                <img src={qrUrl} alt="AIMX QR Ticket" className="ticket-qr" />
+              </div>
+              <button className="btn btn-primary" onClick={() => {
+                const link = document.createElement('a');
+                link.href = qrUrl;
+                link.download = `AIMX-${participant.participantId}-ticket.png`;
+                link.click();
+              }}>📥 Download Ticket</button>
+              <p>Show this QR at event entry for verification</p>
+            </div>
+          )}
+          {participant.status === 'pending' && (
+            <div className="pending-notice">
+              <p>⏳ PENDING – Await Admin Approval</p>
+            </div>
+          )}
+          <div className="participant-dashboard-actions">
+            <button className="btn btn-neon" onClick={() => { localStorage.removeItem('participantAuth'); navigate('/login') }}>
+              Logout
+            </button>
           </div>
         </div>
       </ScrollReveal>
@@ -848,415 +1300,120 @@ function ParticipantDashboard() {
   )
 }
 
+
 function AdminDashboard() {
+  const [participants, setParticipants] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const navigate = useNavigate()
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [registrations, setRegistrations] = useState([])
-  const [selectedScreenshot, setSelectedScreenshot] = useState(null)
-  const timeoutRef = useRef(null)
 
-  // Auto-logout after 2 minutes inactivity
-  useEffect(() => {
-    const resetTimeout = () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-      timeoutRef.current = setTimeout(() => {
-        localStorage.removeItem('adminAuth')
-        navigate('/login')
-      }, 2 * 60 * 1000) // 2 minutes
+  const loadParticipants = async () => {
+    try {
+      const data = await getRegistrations()
+      setParticipants(data)
+    } catch {
+      setError('Failed to load participants. Please login again.')
+    } finally {
+      setLoading(false)
     }
+  }
 
-    const handleActivity = () => resetTimeout()
-
-    window.addEventListener('mousemove', handleActivity)
-    window.addEventListener('keydown', handleActivity)
-    window.addEventListener('click', handleActivity)
-
-    resetTimeout()
-
-    return () => {
-      window.removeEventListener('mousemove', handleActivity)
-      window.removeEventListener('keydown', handleActivity)
-      window.removeEventListener('click', handleActivity)
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    }
-  }, [navigate])
-
-  // Check auth
   useEffect(() => {
-    if (localStorage.getItem('adminAuth') !== 'true') {
+    if (!localStorage.getItem('adminAuth')) {
       navigate('/login')
+      return
     }
+    loadParticipants()
   }, [navigate])
-  
-  useEffect(() => {
-    const regs = JSON.parse(localStorage.getItem('aimx_registrations') || '[]')
-    setRegistrations(regs)
-  }, [])
-  
-  const updateStatus = async (id, newStatus) => {
-    const updated = registrations.map(r => r.id === id ? {...r, status: newStatus} : r)
-    setRegistrations(updated)
-    localStorage.setItem('aimx_registrations', JSON.stringify(updated))
-    
-    // Send status update email to participant
-    const reg = updated.find(r => r.id === id)
-    if (reg) {
-      await sendStatusUpdateEmail(reg, newStatus)
+
+  const handleStatus = async (participantId, status) => {
+    try {
+      await updateRegistrationStatus(participantId, status)
+      await loadParticipants()
+    } catch {
+      alert('Failed to update status')
     }
   }
 
-  const handleDelete = (id) => {
-    if (confirm('Delete this registration permanently?')) {
-      const updated = registrations.filter(r => r.id !== id)
-      setRegistrations(updated)
-      localStorage.setItem('aimx_registrations', JSON.stringify(updated))
-    }
-  }
-  
-  const exportToExcel = () => {
-    const filteredRegs = registrations.filter(r => {
-      const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           r.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           r.participantId.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesStatus = statusFilter === 'all' || r.status === statusFilter
-      return matchesSearch && matchesStatus
-    })
-    
-    const headers = ['Participant ID', 'Name', 'Email', 'Phone', 'College', 'Event', 'Team Name', 'Amount', 'Transaction ID', 'Status', 'Date']
-    let htmlContent = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"><title>AIMX 2026 Registrations</title></head><body><table border="1" style="border-collapse: collapse;"><tr style="background: #6B2D8C; color: white;">' + headers.map(h => '<th style="padding: 8px;">' + h + '</th>').join('') + '</tr>'
-    
-    filteredRegs.forEach(reg => {
-      htmlContent += '<tr>' + [
-        reg.participantId, reg.name, reg.email, reg.phone, reg.college, 
-        reg.eventName + ' - ' + reg.eventSubname, reg.teamName || 'N/A', 
-        '₹' + reg.amount, reg.transactionId, reg.status.toUpperCase(), reg.date
-      ].map(val => '<td style="padding: 8px;">' + val + '</td>').join('') + '</tr>'
-    })
-    
-    htmlContent += '</table></body></html>'
-    
-    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = 'AIMX2026_Registrations_' + new Date().toISOString().split('T')[0] + '.xls'
-    link.click()
-  }
-  
-  const filteredRegs = registrations.filter(r => {
-    const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         r.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         r.participantId.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || r.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
-
-  const isAdmin = localStorage.getItem('adminAuth') === 'true'
-  const stats = {
-    total: registrations.length,
-    pending: registrations.filter(r => r.status === 'pending').length,
-    approved: registrations.filter(r => r.status === 'approved').length,
-    rejected: registrations.filter(r => r.status === 'rejected').length
-  }
-
-  if (!isAdmin) {
-    navigate('/login')
-    return null
-  }
-  
-  const handleLogout = () => {
+  const handleAdminLogout = () => {
     localStorage.removeItem('adminAuth')
+    adminLogout()
     navigate('/login')
   }
-  
-  const getStatusBadge = (status) => {
-    const colors = {
-      pending: { bg: 'rgba(255, 193, 7, 0.2)', color: '#FFC107' },
-      approved: { bg: 'rgba(57, 255, 20, 0.2)', color: '#39FF14' },
-      rejected: { bg: 'rgba(255, 0, 0, 0.2)', color: '#FF0000' }
-    }
-    return (
-      <span style={{
-        padding: '6px 18px', 
-        borderRadius: '25px', 
-        background: colors[status].bg, 
-        color: colors[status].color, 
-        fontWeight: 'bold', 
-        textTransform: 'uppercase', 
-        fontSize: '0.8rem',
-        letterSpacing: '1px'
-      }}>
-        {status}
-      </span>
-    )
-  }
+
+  // Compute stats
+  const stats = participants.reduce((acc, p) => {
+    const status = p.status || 'pending'
+    acc[status] = (acc[status] || 0) + 1
+    acc.total += 1
+    return acc
+  }, {pending: 0, approved: 0, rejected: 0, total: 0})
+
+  if (loading) return <section className="section admin-panel-section" style={{paddingTop: '120px'}}><p>Loading admin panel...</p></section>
 
   return (
-    <div style={{paddingTop: '100px', minHeight: '100vh', background: 'var(--vc-dark)'}}>
-      {/* Screenshot Modal */}
-      {selectedScreenshot && (
-        <div 
-          style={{
-            position: 'fixed', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            bottom: 0, 
-            background: 'rgba(0,0,0,0.95)', 
-            zIndex: 9999, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            flexDirection: 'column',
-            backdropFilter: 'blur(10px)'
-          }} 
-          onClick={() => setSelectedScreenshot(null)}
-        >
-          <h2 style={{color: 'var(--neon-orange)', marginBottom: '25px', fontFamily: 'var(--font-display)', letterSpacing: '3px'}}>Payment Screenshot</h2>
-          <img 
-            src={selectedScreenshot} 
-            alt="Payment Screenshot" 
-            style={{
-              maxWidth: '90%', 
-              maxHeight: '80vh', 
-              borderRadius: '16px', 
-              border: '3px solid var(--neon-orange)',
-              boxShadow: '0 0 40px rgba(255, 107, 53, 0.4)'
-            }} 
-          />
-          <button 
-            className="btn" 
-            style={{marginTop: '25px'}}
-            onClick={() => setSelectedScreenshot(null)}
-          >
-            Close
-          </button>
+<section className="section admin-panel-section" style={{paddingTop: '120px'}}>
+      <ScrollReveal>
+        <h1 className="section-title admin-header">Admin Panel</h1>
+        <div className="admin-stats-grid">
+          <div className="stat-card admin-stat pending">
+            <div className="stat-number">{stats.pending}</div>
+            <div className="stat-label">Pending</div>
+          </div>
+          <div className="stat-card admin-stat approved">
+            <div className="stat-number">{stats.approved}</div>
+            <div className="stat-label">Approved</div>
+          </div>
+          <div className="stat-card admin-stat rejected">
+            <div className="stat-number">{stats.rejected}</div>
+            <div className="stat-label">Rejected</div>
+          </div>
+          <div className="stat-card admin-stat total">
+            <div className="stat-number">{stats.total}</div>
+            <div className="stat-label">Total</div>
+          </div>
         </div>
-      )}
-      
-      {/* Header */}
-      <div style={{
-        background: 'rgba(13,13,26,0.98)', 
-        padding: '25px 50px', 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        borderBottom: '2px solid var(--neon-orange)',
-        flexWrap: 'wrap', 
-        gap: '18px'
-      }}>
-        <div>
-          <h1 style={{
-            color: 'var(--neon-orange)', 
-            fontFamily: 'var(--font-display)', 
-            fontSize: '2.8rem', 
-            margin: 0,
-            letterSpacing: '4px',
-            textShadow: '0 0 20px rgba(255, 107, 53, 0.5)'
-          }}>
-            Admin Dashboard
-          </h1>
-          <p style={{color: 'rgba(255,255,255,0.7)', margin: '8px 0 0'}}>AIMX 2026 • 27-03-2026</p>
-        </div>
-        <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
-          <button onClick={exportToExcel} className="btn" style={{borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)'}}>📊 Export Excel</button>
-          <button onClick={handleLogout} className="btn" style={{borderColor: 'var(--neon-orange)', color: 'var(--neon-orange)'}}>Logout</button>
-        </div>
-      </div>
 
-      {/* Stats */}
-      <div style={{display: 'flex', gap: '18px', padding: '25px 50px', background: 'rgba(22,33,62,0.9)', flexWrap: 'wrap'}}>
-        <div style={{background: 'rgba(255,255,255,0.05)', padding: '20px 30px', borderRadius: '16px', textAlign: 'center', minWidth: '140px', border: '1px solid rgba(255,255,255,0.1)'}}>
-          <div style={{fontSize: '2.2rem', fontWeight: 'bold', color: '#fff'}}>{stats.total}</div>
-          <div style={{color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', letterSpacing: '2px'}}>Total</div>
+        {error && <p style={{ color: '#ff8080', marginBottom: '12px' }}>{error}</p>}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary" onClick={downloadParticipantsExcel}>Download Excel</button>
+          <button className="btn btn-neon" onClick={handleAdminLogout}>Logout</button>
         </div>
-        <div style={{background: 'rgba(255,193,7,0.15)', padding: '20px 30px', borderRadius: '16px', textAlign: 'center', minWidth: '140px', border: '1px solid rgba(255,193,7,0.3)'}}>
-          <div style={{fontSize: '2.2rem', fontWeight: 'bold', color: '#FFC107'}}>{stats.pending}</div>
-          <div style={{color: '#FFC107', fontSize: '0.9rem', letterSpacing: '2px'}}>Pending</div>
-        </div>
-        <div style={{background: 'rgba(57,255,20,0.15)', padding: '20px 30px', borderRadius: '16px', textAlign: 'center', minWidth: '140px', border: '1px solid rgba(57,255,20,0.3)'}}>
-          <div style={{fontSize: '2.2rem', fontWeight: 'bold', color: '#39FF14'}}>{stats.approved}</div>
-          <div style={{color: '#39FF14', fontSize: '0.9rem', letterSpacing: '2px'}}>Approved</div>
-        </div>
-        <div style={{background: 'rgba(255,0,0,0.15)', padding: '20px 30px', borderRadius: '16px', textAlign: 'center', minWidth: '140px', border: '1px solid rgba(255,0,0,0.3)'}}>
-          <div style={{fontSize: '2.2rem', fontWeight: 'bold', color: '#FF0000'}}>{stats.rejected}</div>
-          <div style={{color: '#FF0000', fontSize: '0.9rem', letterSpacing: '2px'}}>Rejected</div>
-        </div>
-      </div>
+        <div className="events-grid">
+          {participants.map((p) => (
+            <div className="mission-card" key={p.participantId}>
+              <div className="mission-card-body">
+                <h3 className="mission-title">{p.name}</h3>
+                <p className="mission-subtitle">{p.participantId}</p>
+                <p>📧 {p.email}</p>
+                <p>📱 {p.phone}</p>
+                <p>🎯 {p.eventName} - {p.eventSubname}</p>
+                <p>💰 ₹{p.amount}</p>
+                <p>Status: <strong>{p.status.toUpperCase()}</strong></p>
+                {p.screenshot && <a className="mission-register-btn" href={p.screenshot} download={`txn-${p.participantId}.png`}>Download Screenshot</a>}
+                <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                  <button className="btn btn-primary" onClick={() => handleStatus(p.participantId, 'approved')}>Approve</button>
+                  <button className="btn btn-neon" onClick={() => handleStatus(p.participantId, 'rejected')}>Reject</button>
+                  <button className="btn" style={{background: '#dc3545', borderColor: '#dc3545', color: 'white'}} onClick={async () => {
+                    if (confirm(`Delete ${p.name} (${p.participantId})?`)) {
+                      try {
+                        await deleteRegistration(p.participantId);
+                        await loadParticipants();
+                      } catch {
+                        alert('Delete failed');
+                      }
+                    }
+                  }}>🗑️ Delete</button>
+                </div>
 
-      {/* Filters */}
-      <div style={{padding: '25px 50px', display: 'flex', gap: '18px', flexWrap: 'wrap', alignItems: 'center'}}>
-        <input 
-          type="text" 
-          placeholder="Search by name, email, ID..." 
-          value={searchTerm} 
-          onChange={(e) => setSearchTerm(e.target.value)} 
-          style={{
-            flex: '1', 
-            minWidth: '280px', 
-            padding: '14px 22px', 
-            background: 'rgba(0,0,0,0.3)', 
-            border: '2px solid rgba(255,255,255,0.1)', 
-            borderRadius: '12px', 
-            color: '#fff', 
-            fontSize: '1rem'
-          }} 
-        />
-        <select 
-          value={statusFilter} 
-          onChange={(e) => setStatusFilter(e.target.value)} 
-          style={{
-            padding: '14px 22px', 
-            background: 'rgba(0,0,0,0.3)', 
-            border: '2px solid rgba(255,255,255,0.1)', 
-            borderRadius: '12px', 
-            color: '#fff', 
-            fontSize: '1rem', 
-            minWidth: '160px'
-          }}
-        >
-          <option value="all">All Status</option>
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-        </select>
-      </div>
-
-      {/* Table */}
-      <div style={{padding: '0 50px 50px'}}>
-        <div style={{overflowX: 'auto'}}>
-          <table style={{width: '100%', borderCollapse: 'collapse', background: 'rgba(0,0,0,0.3)', borderRadius: '16px', overflow: 'hidden'}}>
-            <thead>
-              <tr style={{background: 'rgba(107,45,140,0.3)'}}>
-                <th style={{padding: '18px', textAlign: 'left', color: 'var(--neon-orange)', borderBottom: '2px solid rgba(255,255,255,0.1)', fontFamily: 'var(--font-heading)', letterSpacing: '1px'}}>Participant ID</th>
-                <th style={{padding: '18px', textAlign: 'left', color: 'var(--neon-orange)', borderBottom: '2px solid rgba(255,255,255,0.1)', fontFamily: 'var(--font-heading)', letterSpacing: '1px'}}>Name</th>
-                <th style={{padding: '18px', textAlign: 'left', color: 'var(--neon-orange)', borderBottom: '2px solid rgba(255,255,255,0.1)', fontFamily: 'var(--font-heading)', letterSpacing: '1px'}}>Event</th>
-                <th style={{padding: '18px', textAlign: 'left', color: 'var(--neon-orange)', borderBottom: '2px solid rgba(255,255,255,0.1)', fontFamily: 'var(--font-heading)', letterSpacing: '1px'}}>Contact</th>
-                <th style={{padding: '18px', textAlign: 'left', color: 'var(--neon-orange)', borderBottom: '2px solid rgba(255,255,255,0.1)', fontFamily: 'var(--font-heading)', letterSpacing: '1px'}}>College</th>
-                <th style={{padding: '18px', textAlign: 'left', color: 'var(--neon-orange)', borderBottom: '2px solid rgba(255,255,255,0.1)', fontFamily: 'var(--font-heading)', letterSpacing: '1px'}}>Amount</th>
-                <th style={{padding: '18px', textAlign: 'left', color: 'var(--neon-orange)', borderBottom: '2px solid rgba(255,255,255,0.1)', fontFamily: 'var(--font-heading)', letterSpacing: '1px'}}>Transaction</th>
-                <th style={{padding: '18px', textAlign: 'left', color: 'var(--neon-orange)', borderBottom: '2px solid rgba(255,255,255,0.1)', fontFamily: 'var(--font-heading)', letterSpacing: '1px'}}>Screenshot</th>
-                <th style={{padding: '18px', textAlign: 'left', color: 'var(--neon-orange)', borderBottom: '2px solid rgba(255,255,255,0.1)', fontFamily: 'var(--font-heading)', letterSpacing: '1px'}}>Status</th>
-                <th style={{padding: '18px', textAlign: 'center', color: 'var(--neon-orange)', borderBottom: '2px solid rgba(255,255,255,0.1)', fontFamily: 'var(--font-heading)', letterSpacing: '1px'}}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRegs.length === 0 ? (
-                <tr>
-                  <td colSpan="10" style={{padding: '50px', textAlign: 'center', color: 'rgba(255,255,255,0.5)'}}>No registrations found</td>
-                </tr>
-              ) : filteredRegs.map(reg => (
-                <tr key={reg.id} style={{borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
-                  <td style={{padding: '18px', color: 'var(--neon-cyan)', fontWeight: 'bold'}}>{reg.participantId}</td>
-                  <td style={{padding: '18px', color: '#fff'}}>
-                    <div>{reg.name}</div>
-                    <div style={{fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)'}}>{reg.email}</div>
-                  </td>
-                  <td style={{padding: '18px', color: '#fff'}}>
-                    <div style={{fontWeight: 'bold'}}>{reg.eventName}</div>
-                    <div style={{fontSize: '0.85rem', color: 'var(--neon-pink)'}}>{reg.eventSubname}</div>
-                  </td>
-                  <td style={{padding: '18px', color: '#fff'}}>{reg.phone}</td>
-                  <td style={{padding: '18px', color: 'rgba(255,255,255,0.7)'}}>{reg.college}</td>
-                  <td style={{padding: '18px', color: 'var(--neon-orange)', fontWeight: 'bold'}}>₹{reg.amount}</td>
-                  <td style={{padding: '18px', color: '#fff', fontFamily: 'monospace', fontSize: '0.9rem'}}>{reg.transactionId}</td>
-                  <td style={{padding: '18px'}}>
-                    {reg.screenshot ? (
-                      <button 
-                        onClick={() => setSelectedScreenshot(reg.screenshot)} 
-                        style={{
-                          padding: '6px 14px', 
-                          background: 'rgba(107,45,140,0.3)', 
-                          color: '#fff', 
-                          border: '1px solid var(--neon-pink)', 
-                          borderRadius: '8px', 
-                          cursor: 'pointer',
-                          fontSize: '0.85rem'
-                        }}
-                      >
-                        View
-                      </button>
-                    ) : <span style={{color: 'rgba(255,255,255,0.5)'}}>N/A</span>}
-                  </td>
-                  <td style={{padding: '18px'}}>{getStatusBadge(reg.status)}</td>
-                  <td style={{padding: '18px'}}>
-                    <div style={{display: 'flex', gap: '6px', justifyContent: 'center'}}>
-                      <button 
-                        onClick={() => updateStatus(reg.id, 'approved')} 
-                        title="Approve" 
-                        style={{
-                          padding: '6px 12px', 
-                          background: 'rgba(57,255,20,0.15)', 
-                          color: '#39FF14', 
-                          border: '1px solid #39FF14', 
-                          borderRadius: '8px', 
-                          cursor: 'pointer',
-                          fontSize: '1rem'
-                        }}
-                      >
-                        ✓
-                      </button>
-                      <button 
-                        onClick={() => updateStatus(reg.id, 'pending')} 
-                        title="Pending" 
-                        style={{
-                          padding: '6px 12px', 
-                          background: 'rgba(255,193,7,0.15)', 
-                          color: '#FFC107', 
-                          border: '1px solid #FFC107', 
-                          borderRadius: '8px', 
-                          cursor: 'pointer',
-                          fontSize: '1rem'
-                        }}
-                      >
-                        ⏳
-                      </button>
-                      <button 
-                        onClick={() => updateStatus(reg.id, 'rejected')} 
-                        title="Reject" 
-                        style={{
-                          padding: '6px 12px', 
-                          background: 'rgba(255,0,0,0.15)', 
-                          color: '#FF0000', 
-                          border: '1px solid #FF0000', 
-                          borderRadius: '8px', 
-                          cursor: 'pointer',
-                          fontSize: '1rem'
-                        }}
-                      >
-                        ✗
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(reg.id)} 
-                        title="Delete" 
-                        style={{
-                          padding: '6px 12px', 
-                          background: 'rgba(255,0,0,0.3)', 
-                          color: '#FF4444', 
-                          border: '1px solid #FF4444', 
-                          borderRadius: '8px', 
-                          cursor: 'pointer',
-                          fontSize: '1.1rem',
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
-    </div>
+      </ScrollReveal>
+    </section>
   )
 }
-
-import Layout from './Layout.jsx'
 
 function App() {
   const [loading, setLoading] = useState(true)
@@ -1279,6 +1436,9 @@ function App() {
             <Route path="login" element={<Login />} />
             <Route path="participant" element={<ParticipantDashboard />} />
             <Route path="admin" element={<AdminDashboard />} />
+            <Route path="success/:id" element={<SuccessPage />} />
+            <Route path="checkin" element={<CheckinPage />} />
+            <Route path="scan" element={<CheckinPage />} />
           </Route>
         </Routes>
       </div>
@@ -1287,4 +1447,3 @@ function App() {
 }
 
 export default App
-
