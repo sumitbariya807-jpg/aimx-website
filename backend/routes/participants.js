@@ -2,14 +2,59 @@ const express = require('express');
 const XLSX = require('xlsx');
 const router = express.Router();
 const Participant = require('../models/Participant');
-const { verifyAdmin, validateAdminCredentials, ADMIN_TOKEN } = require('../utils/adminAuth');
+const Organizer = require('../models/Organizer');
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'aimx-jwt-secret-2026';
+const { verifyOrganizer } = require('../utils/adminAuth');
 const { sendRegistrationEmail, sendStatusEmail } = require('../utils/emailService');
+const { getNextId } = require('../utils/counter');
 
-// POST /api/participants/register - Create new registration
+router.post('/admin/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password required' });
+    }
+  const email = username.toLowerCase() === "admin"
+  ? "admin@aimx.com"
+  : username.trim().toLowerCase();
+    const organizer = await Organizer.findOne({ email });
+    if (!organizer || !(await organizer.comparePassword(password))) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    const token = jwt.sign(
+      { organizer: { id: organizer._id, email: organizer.email, name: organizer.name } }, 
+      JWT_SECRET
+    );
+    res.json({ 
+      success: true,
+      token, 
+      organizer: { id: organizer._id, email: organizer.email, name: organizer.name } 
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.post('/register', async (req, res) => {
   try {
     const data = req.body;
-    const participant = new Participant(data);
+    const participantId = await getNextId();
+    const upiRef = data.amount > 0 ? `_${Date.now()}${Math.random().toString(36).slice(-4).toUpperCase()}` : null;
+    const upiUrl = data.amount > 0 
+      ? `upi://pay?pa=ashutoshdp2003@okaxis&pn=AIMX%20Events&am=${data.amount}&cu=INR&ref=${encodeURIComponent(upiRef)}`
+      : null;
+    
+    const participantData = {
+      ...data,
+      participantId,
+      upiRef,
+      status: 'pending',
+      checkedIn: false
+    };
+    
+    const participant = new Participant(participantData);
     await participant.save();
 
     try {
@@ -18,27 +63,23 @@ router.post('/register', async (req, res) => {
       console.error('Registration email error:', emailErr.message);
     }
 
-    res.status(201).json({ message: 'Registered Successfully', participantId: data.participantId });
+    res.status(201).json({ 
+      success: true, 
+      message: 'Registration created successfully - Pending Verification', 
+      participantId,
+      upiUrl,
+      upiRef 
+    });
   } catch (error) {
     console.error('Register error:', error.message);
     if (error.code === 11000) {
-      return res.status(400).json({ error: 'Participant ID already exists' });
+      return res.status(400).json({ error: 'Registration ID already exists' });
     }
     res.status(500).json({ error: error.message });
   }
 });
 
-// POST /api/participants/admin/login
-router.post('/admin/login', (req, res) => {
-  const { username, password } = req.body || {};
-  if (!validateAdminCredentials(username, password)) {
-    return res.status(401).json({ error: 'Invalid admin credentials' });
-  }
-  res.json({ success: true, token: ADMIN_TOKEN });
-});
-
-// GET /api/participants - Get all participants (admin only)
-router.get('/', verifyAdmin, async (req, res) => {
+router.get('/', verifyOrganizer, async (req, res) => {
   try {
     const participants = await Participant.find().sort({ createdAt: -1 });
     res.json(participants);
@@ -48,23 +89,24 @@ router.get('/', verifyAdmin, async (req, res) => {
   }
 });
 
-// GET /api/participants/export/excel - Download all participants as Excel (admin only)
-router.get('/export/excel', verifyAdmin, async (req, res) => {
+router.get('/export/excel', verifyOrganizer, async (req, res) => {
   try {
     const participants = await Participant.find().sort({ createdAt: -1 }).lean();
     const rows = participants.map((p) => ({
-      participantId: p.participantId,
-      name: p.name,
-      email: p.email,
-      phone: p.phone,
-      college: p.college,
-      eventName: p.eventName,
-      eventSubname: p.eventSubname,
-      teamName: p.teamName || '',
-      transactionId: p.transactionId,
-      amount: p.amount,
-      status: p.status,
-      date: p.date
+      'Participant ID': p.participantId,
+      Name: p.name,
+      Email: p.email,
+      Phone: p.phone,
+      College: p.college,
+      Event: p.eventName,
+      'Event Subname': p.eventSubname || '',
+      'Team Name': p.teamName || '',
+      'Transaction ID': p.transactionId,
+      Amount: `₹${p.amount}`,
+      'UPI Ref': p.upiRef || '',
+      Status: p.status.toUpperCase(),
+      'Checked In': p.checkedIn ? 'YES' : 'NO',
+      Date: p.date
     }));
 
     const workbook = XLSX.utils.book_new();
@@ -81,23 +123,38 @@ router.get('/export/excel', verifyAdmin, async (req, res) => {
   }
 });
 
-// GET /api/participants/:id - Get by participantId (participant login)
+router.get('/verify/:registrationId', async (req, res) => {
+  try {
+    const participant = await Participant.findOne({ participantId: req.params.registrationId });
+    if (!participant) return res.status(404).json({ error: 'Participant not found' });
+    
+    res.json({
+      name: participant.name,
+      event: participant.eventName,
+      registrationId: participant.participantId,
+      paymentStatus: participant.status === 'approved' ? 'Approved' : 'Pending',
+      checkInStatus: participant.checkedIn
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/:participantId', async (req, res) => {
   try {
     const participant = await Participant.findOne({ participantId: req.params.participantId });
-    if (!participant) return res.json([]);
+    if (!participant) return res.status(404).json({ error: 'Participant not found' });
     res.json(participant);
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// PATCH /api/participants/:id/status - Update status (admin only)
-router.patch('/:participantId/status', verifyAdmin, async (req, res) => {
+router.patch('/:participantId/status', verifyOrganizer, async (req, res) => {
   try {
     const { status } = req.body;
     if (!['pending', 'approved', 'rejected'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status value' });
+      return res.status(400).json({ error: 'Invalid status' });
     }
 
     const participant = await Participant.findOneAndUpdate(
@@ -122,14 +179,105 @@ router.patch('/:participantId/status', verifyAdmin, async (req, res) => {
   }
 });
 
-// DELETE /api/participants/:id - Delete participant (admin only)
-router.delete('/:participantId', verifyAdmin, async (req, res) => {
+router.delete('/:participantId', verifyOrganizer, async (req, res) => {
   try {
     const participant = await Participant.findOneAndDelete({ participantId: req.params.participantId });
     if (!participant) return res.status(404).json({ error: 'Participant not found' });
-    res.json({ success: true, message: 'Participant deleted' });
+    res.json({ success: true, message: 'Deleted' });
   } catch (error) {
-    console.error('Delete error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/checkin/:registrationId', async (req, res) => {
+  try {
+    const registrationId = req.params.registrationId;
+    const participant = await Participant.findOne({ participantId: registrationId });
+    
+    if (!participant) {
+      return res.status(404).json({ error: 'Participant not found' });
+    }
+    
+    if (participant.checkedIn) {
+      return res.status(400).json({ 
+        error: 'Participant already checked in.',
+        participant: {
+          name: participant.name,
+          event: participant.eventName,
+          registrationId: participant.participantId,
+          paymentStatus: participant.status === 'approved' ? 'Approved' : 'Pending',
+          checkInStatus: true
+        }
+      });
+    }
+    
+    const updated = await Participant.findOneAndUpdate(
+      { participantId: registrationId },
+      { checkedIn: true },
+      { new: true }
+    );
+    
+    res.json({
+      success: true,
+      message: 'Checked in successfully!',
+      participant: {
+        name: updated.name,
+        event: updated.eventName,
+        registrationId: updated.participantId,
+        paymentStatus: updated.status === 'approved' ? 'Approved' : 'Pending',
+        checkInStatus: true
+      }
+    });
+  } catch (error) {
+    console.error('Checkin error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Legacy QR scanner endpoint (keep for existing frontend)
+router.post('/checkin', async (req, res) => {
+  try {
+    const { qrData } = req.body;
+    let ticket;
+    try {
+      ticket = JSON.parse(qrData);
+    } catch {
+      return res.status(400).json({ error: 'Invalid QR code data' });
+    }
+
+    if (!ticket.id || !ticket.name || !ticket.event || !ticket.mobile) {
+      return res.status(400).json({ error: 'Invalid ticket format' });
+    }
+
+    const participant = await Participant.findOne({ participantId: ticket.id, phone: ticket.mobile });
+    
+    if (!participant) {
+      return res.status(404).json({ error: 'Participant not found or mismatch' });
+    }
+    
+    if (participant.checkedIn) {
+      return res.status(400).json({ error: 'Already checked in' });
+    }
+    
+    await Participant.findOneAndUpdate(
+      { participantId: ticket.id, phone: ticket.mobile },
+      { checkedIn: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Checked in successfully!',
+      participant: {
+        id: participant.participantId,
+        name: participant.name,
+        event: participant.eventName,
+        phone: participant.phone,
+        status: participant.status,
+        checkedIn: true
+      }
+    });
+  } catch (error) {
+    console.error('Checkin error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

@@ -8,7 +8,7 @@ const participantSchema = new mongoose.Schema({
   college: { type: String, required: true },
   eventId: { type: String, required: true },
   eventName: { type: String, required: true },
-  eventSubname: { type: String, required: true },
+  eventSubname: String,
   teamName: String,
   transactionId: { type: String, required: true },
   amount: { type: Number, required: true },
@@ -18,6 +18,9 @@ const participantSchema = new mongoose.Schema({
     default: 'pending' 
   },
   screenshot: String, // base64
+  upiRef: String,
+  qrTicket: String, // JSON {"id": "...", "name": "...", "event": "...", "mobile": "..."}
+  checkedIn: { type: Boolean, default: false },
   date: { type: String, default: () => new Date().toLocaleDateString() },
   id: String // Legacy field from frontend
 }, {

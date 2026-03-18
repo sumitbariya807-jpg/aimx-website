@@ -15,20 +15,23 @@ const getAdminHeaders = () => {
   };
 };
 
-export const adminLogin = async (username, password) => {
+export const adminLogin = async (email, password) => {
   await withDelay();
   const response = await fetch(`${BASE_URL}/participants/admin/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
+    body: JSON.stringify({
+      username: email,
+      password: password
+    })
   });
 
   if (!response.ok) throw new Error('Invalid admin credentials');
   const data = await response.json();
+
   if (data?.token) localStorage.setItem('adminToken', data.token);
   return data;
 };
-
 export const adminLogout = () => {
   localStorage.removeItem('adminToken');
 };
@@ -83,6 +86,33 @@ export const deleteRegistration = async (participantId) => {
   return response.json();
 };
 
+export const verifyParticipant = async (registrationId) => {
+  await withDelay();
+  const response = await fetch(`${BASE_URL}/participants/verify/${registrationId}`);
+  if (!response.ok) throw new Error(await response.text() || 'Verify failed');
+  return response.json();
+};
+
+export const checkinParticipant = async (registrationId) => {
+  await withDelay();
+  const response = await fetch(`${BASE_URL}/participants/checkin/${registrationId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (!response.ok) throw new Error(await response.text() || 'Checkin failed');
+  return response.json();
+};
+
+export const postCheckin = async (qrData) => {
+  await withDelay();
+  const response = await fetch(`${BASE_URL}/participants/checkin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ qrData })
+  });
+  if (!response.ok) throw new Error(await response.text() || 'Checkin failed');
+  return response.json();
+};
 
 export const downloadParticipantsExcel = async () => {
   const response = await fetch(`${BASE_URL}/participants/export/excel`, {

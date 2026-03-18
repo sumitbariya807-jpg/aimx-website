@@ -1,6 +1,5 @@
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'adminaimx2026';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'aimx@aimsr111';
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'aimx-admin-token';
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'aimx-jwt-secret-2026';
 
 const getTokenFromHeader = (req) => {
   const authHeader = req.headers.authorization || '';
@@ -10,22 +9,22 @@ const getTokenFromHeader = (req) => {
   return null;
 };
 
-const verifyAdmin = (req, res, next) => {
-  const token = getTokenFromHeader(req);
+const verifyOrganizer = (req, res, next) => {
+  try {
+    const token = getTokenFromHeader(req);
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
 
-  if (!token || token !== ADMIN_TOKEN) {
-    return res.status(401).json({ error: 'Unauthorized admin access' });
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.organizer = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid token' });
   }
-
-  next();
-};
-
-const validateAdminCredentials = (username, password) => {
-  return username === ADMIN_USERNAME && password === ADMIN_PASSWORD;
 };
 
 module.exports = {
-  verifyAdmin,
-  validateAdminCredentials,
-  ADMIN_TOKEN
+  verifyOrganizer,
+  getTokenFromHeader
 };

@@ -1,4 +1,8 @@
+
 const nodemailer = require('nodemailer');
+const QRCode = require('qrcode');
+
+const QRCode = require('qrcode');
 
 const createTransporter = () => {
   const host = process.env.SMTP_HOST;
@@ -31,12 +35,15 @@ const sendRegistrationEmail = async (participant) => {
   const html = `
     <h2>AIMX 2026 Event Notification</h2>
     <p>Hello ${participant.name},</p>
-    <p><strong>Participant ID:</strong> ${participant.participantId}</p>
-    <p><strong>Event:</strong> ${participant.eventName} - ${participant.eventSubname}</p>
+    <p><strong>Mobile:</strong> ${participant.phone}</p>
     <p><strong>College:</strong> ${participant.college}</p>
+    <p><strong>Event:</strong> ${participant.eventName} (${participant.eventId})</p>
     <p><strong>Amount Paid:</strong> ₹${participant.amount}</p>
     <p><strong>Transaction ID:</strong> ${participant.transactionId}</p>
     <p><strong>Status:</strong> ${String(participant.status || 'pending').toUpperCase()}</p>
+    ${participant.teamName ? `<p><strong>Team Name:</strong> ${participant.teamName}</p>` : ''}
+    ${participant.teamMembers && participant.teamMembers.length > 1 ? 
+      '<h3>Team Members:</h3>' + participant.teamMembers.map((member, i) => `<p>Member ${i+1}: ${member.name} (${member.email})</p>`).join('') : ''}
     <p>Thank you for participating in AIMX 2026.</p>
     <p>AIMX Team</p>
   `;
@@ -64,17 +71,42 @@ const sendStatusEmail = async (participant, status) => {
   const from = process.env.MAIL_FROM || process.env.SMTP_USER;
   const adminEmail = process.env.ADMIN_EMAIL || process.env.MAIL_FROM || process.env.SMTP_USER;
   const statusLabel = status.toUpperCase();
-  const statusText = status === 'approved'
-    ? 'Your registration has been ACCEPTED by admin.'
+const statusText = status === 'approved'
+    ? 'Your registration has been APPROVED.'
+
     : 'Your registration has been REJECTED by admin.';
+
+  let qrImage = '';
+  if (status === 'approved') {
+    try {
+      const qrData = participant.participantId;
+      qrImage = await QRCode.toDataURL(qrData);
+    } catch (err) {
+      console.error('QR generation error:', err);
+      qrImage = '';
+    }
+  }
 
   const html = `
     <h2>AIMX 2026 Registration Status Update</h2>
     <p>Hello ${participant.name},</p>
+    <p><strong>Mobile:</strong> ${participant.phone}</p>
+    <p><strong>College:</strong> ${participant.college}</p>
     <p>Your registration status is now: <strong>${statusLabel}</strong></p>
-    <p>${statusText}</p>
+  <p>${statusText}</p>
     <p><strong>Participant ID:</strong> ${participant.participantId}</p>
-    <p><strong>Event:</strong> ${participant.eventName} - ${participant.eventSubname}</p>
+    ${qrImage ? `
+      <div style="text-align: center; margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 10px; border: 2px solid #28a745;">
+        <h3 style="color: #28a745;">✅ Your Entry QR Ticket</h3>
+        <img src="${qrImage}" width="220" height="220" alt="AIMX 2026 QR Ticket" style="border: 2px solid #007bff; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/>
+        <p style="font-size: 14px; color: #495057; margin-top: 15px; font-weight: 500;">Please show this QR code at the event entry gate.</p>
+        <p style="font-size: 13px; color: #6c757d;">Event staff will scan this QR for verification. No ticket? Contact AIMX Team.</p>
+      </div>
+    ` : ''}
+    <p><strong>Event:</strong> ${participant.eventName} (${participant.eventId})</p>
+    ${participant.teamName ? `<p><strong>Team Name:</strong> ${participant.teamName}</p>` : ''}
+    ${participant.teamMembers && participant.teamMembers.length > 1 ? 
+      '<h3>Team Members:</h3>' + participant.teamMembers.map((member, i) => `<p>Member ${i+1}: ${member.name} (${member.email})</p>`).join('') : ''}
     <p>Thank you,<br/>AIMX Team</p>
   `;
 
@@ -91,3 +123,4 @@ const sendStatusEmail = async (participant, status) => {
 };
 
 module.exports = { sendRegistrationEmail, sendStatusEmail };
+

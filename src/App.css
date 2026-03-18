@@ -512,14 +512,23 @@ body::after {
   50% { width: 400px; opacity: 0.7; }
 }
 
+/* HERO BUTTON CONTAINER */
 .hero-buttons {
   display: flex;
-  gap: 25px;
-  flex-wrap: wrap;
+  gap: 30px;
   justify-content: center;
-  position: relative;
-  z-index: 1;
-  border-radius: 10px;
+  align-items: center;
+}
+
+/* HERO BUTTONS - Register Now & Explore Events */
+
+
+
+
+.hero-buttons .btn-neon {
+  background: transparent;
+  border: 2px solid #ff00ff;
+  color: #fff;
 }
 
 /* Floating Particles */
@@ -570,18 +579,27 @@ body::after {
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: 1px;
+  height: 70px;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-transform: uppercase;
-  padding: 15px 40px;
+  padding: 0 40px;
   border: 2px solid var(--neon-orange);
   background: transparent;
   color: var(--neon-orange);
   cursor: pointer;
-  text-transform: uppercase;
   letter-spacing: 3px;
   position: relative;
   overflow: hidden;
   text-decoration: none;
-  display: inline-block;
+  height: 70px;
+  width: 220px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   border-radius: 4px;
 }
@@ -630,11 +648,30 @@ body::after {
 }
 
 /* Primary Button */
-.btn-primary {
-  background: linear-gradient(135deg, var(--neon-orange), var(--sunset-pink));
+.hero-buttons .btn-primary {
+  background: linear-gradient(135deg, #FF6B35, #FF1493, #9400D3);
+  background-size: 300% 300%;
+  animation: gradientShift 3s ease infinite;
   color: #fff;
-  border: none;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  border: 2px solid transparent;
+  border-image: linear-gradient(135deg, var(--neon-orange), var(--neon-pink)) 1;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.3);
+  font-weight: 800;
+  letter-spacing: 4px;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.hero-buttons .btn-primary:hover {
+  transform: translateY(-8px) scale(1.1);
+  box-shadow: 
+    0 25px 50px rgba(255, 107, 53, 0.6),
+    0 0 60px rgba(255, 20, 147, 0.5),
+    inset 0 0 30px rgba(255, 255, 255, 0.2);
 }
 
 .btn-primary:hover {
@@ -643,9 +680,25 @@ body::after {
 }
 
 /* Neon Button */
-.btn-neon {
-  border-color: var(--neon-pink);
-  color: var(--neon-pink);
+.hero-buttons .btn-neon {
+  background: linear-gradient(135deg, transparent, rgba(148, 0, 211, 0.2));
+  border: 2px solid var(--neon-purple);
+  color: var(--neon-purple);
+  font-weight: 700;
+  letter-spacing: 3px;
+  padding: 20px 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-buttons .btn-neon:hover {
+  background: linear-gradient(135deg, rgba(148, 0, 211, 0.3), transparent);
+  color: #fff;
+  box-shadow: 
+    0 20px 40px rgba(148, 0, 211, 0.5),
+    0 0 50px rgba(148, 0, 211, 0.4),
+    inset 0 0 25px rgba(255, 255, 255, 0.2);
+  transform: translateY(-5px) scale(1.05);
 }
 
 .btn-neon:hover {
@@ -1502,6 +1555,285 @@ body::after {
   border-top: 1px solid var(--glass-border);
   color: rgba(255, 255, 255, 0.5);
   font-size: 1rem;
+}
+
+/* ========================================
+   SUCCESS PAGE TICKET - AIMX 2026 ENTRY
+   ======================================== */
+
+/* Main Success Container - Full Screen Centered */
+.success-card.ticket-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(25px);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-image: linear-gradient(45deg, var(--neon-cyan), var(--neon-orange), var(--neon-pink)) 1;
+  border-radius: 32px;
+  padding: clamp(40px, 8vw, 80px);
+  max-width: 500px;
+  width: 90%;
+  margin: 2rem auto;
+  text-align: center;
+  box-shadow: 
+    0 40px 80px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 0 60px rgba(0,212,255,0.3);
+  position: relative;
+  animation: ticketEntry 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2rem;
+}
+
+@keyframes ticketEntry {
+  from { 
+    opacity: 0; 
+    transform: translateY(50px) scale(0.95) rotateX(10deg); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0) scale(1) rotateX(0deg); 
+  }
+}
+
+.ticket-card::before {
+  content: '🎫 AIMX 2026 ENTRY TICKET';
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--neon-orange), var(--neon-pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 3vw, 1.8rem);
+  letter-spacing: 4px;
+  text-shadow: 0 0 20px rgba(255,107,53,0.8);
+  font-weight: 900;
+  text-transform: uppercase;
+  padding: 8px 24px;
+  background: rgba(13,13,26,0.9);
+  border-radius: 24px;
+  border: 2px solid var(--neon-orange);
+}
+
+/* Participant ID - Neon Badge */
+.participant-id {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--neon-cyan), var(--neon-orange));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 
+    0 0 30px rgba(0,212,255,0.8),
+    0 0 60px rgba(255,107,53,0.6);
+  letter-spacing: 6px;
+  padding: 20px 40px;
+  border-radius: 20px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-image: linear-gradient(45deg, var(--neon-cyan), var(--neon-orange)) 1;
+  margin: 1rem 0;
+  animation: idPulse 2s ease-in-out infinite;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+@keyframes idPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(0,212,255,0.6)); }
+  50% { transform: scale(1.05); filter: drop-shadow(0 0 40px rgba(0,212,255,0.9)); }
+}
+
+/* Ticket Details Grid */
+.ticket-details {
+  display: grid;
+  gap: 1rem;
+  margin: 2rem 0;
+  font-size: 1.3rem;
+}
+
+.ticket-details p {
+  background: rgba(255,255,255,0.05);
+  padding: 15px 25px;
+  border-radius: 16px;
+  border-left: 4px solid var(--neon-pink);
+  text-align: left;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ticket-details p:hover {
+  border-left-color: var(--neon-orange);
+  background: rgba(255,107,53,0.1);
+  transform: translateX(5px);
+  box-shadow: 0 10px 25px rgba(255,107,53,0.2);
+}
+
+/* QR Section */
+.ticket-qr-section {
+  margin: 2.5rem 0;
+  padding: 2rem;
+  background: rgba(40,167,74,0.15);
+  border: 2px solid var(--neon-green);
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  animation: qrReveal 1.5s ease-out 0.5s both;
+}
+
+@keyframes qrReveal {
+  from { opacity: 0; transform: scale(0.8) translateY(30px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.ticket-qr-section p {
+  font-size: 1.4rem;
+  color: var(--neon-green);
+  font-weight: 600;
+  text-shadow: 0 0 15px var(--neon-green);
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.qr-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 20px;
+  border: 2px solid rgba(0,212,255,0.3);
+}
+
+/* QR Image Responsive */
+.ticket-qr {
+  width: clamp(200px, 50vw, 280px);
+  height: clamp(200px, 50vw, 280px);
+  object-fit: contain;
+  border-radius: 20px;
+  border: 4px solid var(--neon-cyan);
+  box-shadow: 
+    0 20px 50px rgba(0,0,0,0.6),
+    0 0 60px rgba(0,212,255,0.6),
+    inset 0 0 40px rgba(255,255,255,0.1);
+  animation: qrGlow 3s ease-in-out infinite;
+}
+
+@keyframes qrGlow {
+  0%, 100% { filter: drop-shadow(0 0 20px rgba(0,212,255,0.7)); }
+  50% { filter: drop-shadow(0 0 40px rgba(0,212,255,1)); }
+}
+
+/* Download Button */
+.ticket-qr-section .btn {
+  padding: 14px 35px;
+  font-size: 1.1rem;
+  background: linear-gradient(135deg, var(--neon-green), #28a745);
+  border: 2px solid var(--neon-green);
+  border-radius: 30px;
+  font-weight: 700;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.ticket-qr-section .btn:hover {
+  transform: scale(1.1) translateY(-3px);
+  box-shadow: 
+    0 15px 35px rgba(40,167,74,0.6),
+    0 0 40px var(--neon-green);
+}
+
+/* Pending State */
+.ticket-pending {
+  padding: 3rem;
+  background: linear-gradient(135deg, rgba(255,193,7,0.2), rgba(255,152,0,0.15));
+  border: 2px dashed var(--neon-orange);
+  border-radius: 24px;
+  text-align: center;
+  animation: pendingPulse 2s ease-in-out infinite;
+}
+
+@keyframes pendingPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(255,193,7,0.5); }
+  50% { box-shadow: 0 0 40px rgba(255,193,7,0.8); }
+}
+
+.ticket-pending p {
+  font-size: 1.6rem;
+  color: var(--neon-orange);
+  margin-bottom: 2rem;
+  font-weight: 600;
+  text-shadow: 0 0 15px var(--neon-orange);
+}
+
+.ticket-pending .btn {
+  background: linear-gradient(135deg, var(--neon-orange), #fd7e14);
+  border-color: var(--neon-orange);
+}
+
+/* Status Colors */
+.approved { color: var(--neon-green) !important; }
+.pending { color: var(--neon-orange) !important; }
+.rejected { color: #dc3545 !important; }
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .ticket-card {
+    margin: 1rem;
+    padding: 2.5rem 2rem !important;
+    width: calc(100% - 2rem);
+  }
+  
+  .ticket-details {
+    font-size: 1.1rem;
+    gap: 0.75rem;
+  }
+  
+  .ticket-details p {
+    padding: 12px 16px;
+    font-size: 1.1rem;
+  }
+  
+  .ticket-qr {
+    width: 220px !important;
+    height: 220px !important;
+  }
+  
+  .section[style*="paddingTop: '120px'"] {
+    padding-top: 100px !important;
+  }
+}
+
+/* ScrollReveal Fix for Success */
+.section-reveal {
+  opacity: 1 !important; /* Force visible */
+  transform: none !important;
+}
+
+.ticket-card .section-reveal {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Back Button */
+.ticket-card .btn:not(.btn-primary) {
+  background: var(--glass-bg);
+  color: rgba(255,255,255,0.9);
+  border: 2px solid var(--glass-border);
+  margin-top: 1rem;
+}
+
+.ticket-card .btn:not(.btn-primary):hover {
+  background: rgba(255,255,255,0.1);
+  border-color: var(--neon-cyan);
+  color: white;
 }
 
 /* ========================================
