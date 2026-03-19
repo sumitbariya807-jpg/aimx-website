@@ -1,7 +1,10 @@
 // AIMX Backend API Client
 
-const BASE_URL = "https://aimx-website-1.onrender.com/api";
-console.log("FINAL API:", BASE_URL);
+const isLocal = import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const BASE_URL = isLocal 
+  ? 'http://localhost:5000/api' 
+  : 'https://aimx-website.onrender.com/api';
+console.log('API_BASE:', BASE_URL, isLocal ? '(LOCAL)' : '(PROD)');
 
 const API_DELAY = 300;
 
@@ -19,7 +22,7 @@ const getAdminHeaders = () => {
 
 export const adminLogin = async (email, password) => {
   await withDelay();
-  const response = await fetch(`${BASE_URL}/participants/admin/login`, {
+  const response = await fetch(`${BASE_URL}/api/organizers/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -34,13 +37,14 @@ export const adminLogin = async (email, password) => {
   if (data?.token) localStorage.setItem('adminToken', data.token);
   return data;
 };
+
 export const adminLogout = () => {
   localStorage.removeItem('adminToken');
 };
 
 export const postRegistration = async (registrationData) => {
   await withDelay();
-  const response = await fetch(`${BASE_URL}/participants/register`, {
+  const response = await fetch(`${BASE_URL}/api/participants/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(registrationData)
@@ -51,7 +55,7 @@ export const postRegistration = async (registrationData) => {
 
 export const getRegistrations = async () => {
   await withDelay();
-  const response = await fetch(`${BASE_URL}/participants`, {
+  const response = await fetch(`${BASE_URL}/api/participants/list`, {
     headers: getAdminHeaders()
   });
   if (!response.ok) throw new Error(await response.text() || 'Fetch failed');
@@ -61,7 +65,7 @@ export const getRegistrations = async () => {
 
 export const getRegistrationById = async (participantId) => {
   await withDelay();
-  const response = await fetch(`${BASE_URL}/participants/${participantId}`);
+  const response = await fetch(`${BASE_URL}/api/participants/${participantId}`);
   if (!response.ok) return null;
   const data = await response.json();
   return Array.isArray(data) ? data[0] || null : data;

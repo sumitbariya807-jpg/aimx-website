@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const counterSchema = new mongoose.Schema({
   _id: { type: String, required: true },
@@ -17,8 +18,8 @@ const getNextSequence = async (name) => {
 };
 
 const getNextId = async (prefix = 'AIMX2026') => {
-  const seq = await getNextSequence('registration');
-  return `${prefix}-${seq.toString().padStart(4, '0')}`;
+  const randomHex = crypto.randomBytes(3).toString('hex').toUpperCase();
+  return `${prefix}-${randomHex}`;
 };
 
 const resetCounter = async (name) => {

@@ -1,16 +1,10 @@
-# Production Deployment Fix Progress
+# AIMX Website Task Tracker
 
-✅ **Plan Approved**
+## Current Task: Fix footer "Ask Query" button CSS to match theme
 
-## Breakdown:
-1. [x] Create frontend .env with VITE_API_URL  
-2. [x] Update backend CORS in server.js
-3. [x] Create backend .env with FRONTEND_URL
-4. [x] Create DEPLOY-PRODUCTION.md instructions
-5. [ ] User adds env vars to Vercel/Render dashboards
-6. [ ] Test production API calls
+✅ Step 1: Plan approved by user  
+✅ Step 2: Create TODO.md for tracking  
+✅ Step 3: Read index.css for current button styles  \n✅ Step 4: Add footer-specific .btn-primary CSS override  \n🔄 Step 5: Test changes (run `npm run dev` to preview footer)  \n✅ Step 6: Mark complete and attempt_completion  
 
-**Next: Update your Vercel/Render env vars and redeploy!**
-
-**Current Step: 1/6**
+**Next:** Reading index.css content to ensure exact placement of new CSS rules.
 
