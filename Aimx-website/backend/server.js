@@ -9,11 +9,15 @@ const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb+srv://sunnybariya:sunnybariya1@cluster0.xxgfaha.mongodb.net/aimx?retryWrites=true&w=majority';
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://your-vercel-app.vercel.app',
+  origin: [
+    'https://aimx-website-gilt.vercel.app',
+    'http://localhost:5173'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'OPTIONS', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+console.log('✅ CORS configured for:', ['https://aimx-website-gilt.vercel.app', 'http://localhost:5173']);
 console.log('✅ CORS configured for production (Render)');
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
@@ -27,7 +31,10 @@ const http = require('http');
 const server = http.createServer(app);
 const io = require('socket.io')(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'https://your-vercel-app.vercel.app',
+    origin: [
+      'https://aimx-website-gilt.vercel.app',
+      'http://localhost:5173'
+    ],
     methods: ['GET', 'POST']
   }
 });
