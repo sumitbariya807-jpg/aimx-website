@@ -7,7 +7,7 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'aimx-jwt-secret-2026';
 
 // POST /api/organizers/register
-router.post('/organizers/register', async (req, res) => {
+router.post('/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
     const organizer = new Organizer({ email, password, name });

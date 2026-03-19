@@ -12,7 +12,7 @@ const { getNextId } = require('../utils/counter');
 // REMOVED: admin login route - moved to organizers.js (Step 2 complete)
 // router.post('/participants/admin/login', ...);
 
-router.post('/participants/register', async (req, res) => {
+router.post('/register', async (req, res) => {
   try {
     const data = req.body;
     const participantId = await getNextId();
@@ -54,7 +54,7 @@ router.post('/participants/register', async (req, res) => {
   }
 });
 
-router.get('/participants/list', verifyOrganizer, async (req, res) => {
+router.get('/list', verifyOrganizer, async (req, res) => {
   try {
     const participants = await Participant.find().sort({ createdAt: -1 });
     res.json(participants);
@@ -64,7 +64,7 @@ router.get('/participants/list', verifyOrganizer, async (req, res) => {
   }
 });
 
-router.get('/participants/export/excel', verifyOrganizer, async (req, res) => {
+router.get('/export/excel', verifyOrganizer, async (req, res) => {
   try {
     const participants = await Participant.find().sort({ createdAt: -1 }).lean();
     const rows = participants.map((p) => ({
@@ -98,7 +98,7 @@ router.get('/participants/export/excel', verifyOrganizer, async (req, res) => {
   }
 });
 
-router.get('/participants/verify/:registrationId', async (req, res) => {
+router.get('/verify/:registrationId', async (req, res) => {
   try {
     const participant = await Participant.findOne({ participantId: req.params.registrationId });
     if (!participant) return res.status(404).json({ error: 'Participant not found' });
@@ -115,7 +115,7 @@ router.get('/participants/verify/:registrationId', async (req, res) => {
   }
 });
 
-router.get('/participants/:participantId', async (req, res) => {
+router.get('/:participantId', async (req, res) => {
   try {
     const participant = await Participant.findOne({ participantId: req.params.participantId });
     if (!participant) return res.status(404).json({ error: 'Participant not found' });
@@ -125,7 +125,7 @@ router.get('/participants/:participantId', async (req, res) => {
   }
 });
 
-router.patch('/participants/:participantId/status', verifyOrganizer, async (req, res) => {
+router.patch('/:participantId/status', verifyOrganizer, async (req, res) => {
   try {
     const { status } = req.body;
     if (!['pending', 'approved', 'rejected'].includes(status)) {
@@ -154,7 +154,7 @@ router.patch('/participants/:participantId/status', verifyOrganizer, async (req,
   }
 });
 
-router.delete('/participants/:participantId', verifyOrganizer, async (req, res) => {
+router.delete('/:participantId', verifyOrganizer, async (req, res) => {
   try {
     const participant = await Participant.findOneAndDelete({ participantId: req.params.participantId });
     if (!participant) return res.status(404).json({ error: 'Participant not found' });
@@ -164,7 +164,7 @@ router.delete('/participants/:participantId', verifyOrganizer, async (req, res) 
   }
 });
 
-router.post('/participants/checkin/:registrationId', async (req, res) => {
+router.post('/checkin/:registrationId', async (req, res) => {
   try {
     const registrationId = req.params.registrationId;
     const participant = await Participant.findOne({ participantId: registrationId });
@@ -210,7 +210,7 @@ router.post('/participants/checkin/:registrationId', async (req, res) => {
 });
 
 // Legacy QR scanner endpoint (keep for existing frontend)
-router.post('/participants/checkin', async (req, res) => {
+router.post('/checkin', async (req, res) => {
   try {
     const { qrData } = req.body;
     let ticket;
