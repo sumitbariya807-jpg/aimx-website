@@ -65,8 +65,9 @@ app.get('/', (req, res) => res.json({
 }));
 
 
-// 404 fallback
+// IMPORTANT: 404 LAST - after all routes/health
 app.use('*', (req, res) => res.status(404).json({ error: 'Route not found' }));
+
 
 // Global error handlers for Render stability
 process.on('uncaughtException', (err) => {
