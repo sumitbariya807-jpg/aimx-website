@@ -1,13 +1,13 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const Organizer = require('../models/Organizer');
-const { sendRegistrationEmail } = require('../utils/emailService-fixed.js');
+const { sendRegistrationEmail } = require('../utils/emailService');
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'aimx-jwt-secret-2026';
 
 // POST /api/organizers/register
-router.post('/organizers/register', async (req, res) => {
+router.post('/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
     const organizer = new Organizer({ email, password, name });
@@ -40,7 +40,7 @@ router.post('/organizers/register', async (req, res) => {
 });
 
 // POST /api/organizers/login
-router.post('/organizers/login', async (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;  // Match frontend payload
     const email = username ? username.trim().toLowerCase() : '';

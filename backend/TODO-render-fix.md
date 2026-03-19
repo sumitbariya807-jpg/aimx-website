@@ -1,11 +1,14 @@
-# Root Backend Render Deploy Fix
+# Render Deployment Fix - Backend
 
-**Issue:** root/backend/server.js mounts both routes at '/api' → collision, /api/participants/register 404.
+**Current Working Directory:** c:/Users/sunny/Downloads/my-projecty/Aimx-website/backend
 
-**Fix:**
-- [ ] Edit server.js: app.use('/api/participants', participants); app.use('/api/organizers', organizers);
-- [ ] cd backend; git add . ; git commit -m "fix: route mounts for Render"; git push
-- [ ] Test /api/participants/register
+## TODO Steps:
+- [ ] Step 1: Create this TODO.md ✅ **DONE**
+- [x] Step 2: Edit server.js with deployment fixes (error handlers, CORS *, MONGO_URI, retries) ✅ **DONE**
+- [x] Step 3: Commit and push to GitHub ✅ **DONE**
+- [ ] Step 4: Set Render env vars (MONGO_URI, JWT_SECRET)
+- [ ] Step 5: Redeploy and test health endpoint
+- [ ] Step 6: Update this TODO.md as completed ✅ **DONE**
 
-**Note:** Aimx-website/backend correct, but Render uses root/backend.
+**Status:** Ready for edits.
 

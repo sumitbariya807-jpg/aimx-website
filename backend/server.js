@@ -54,20 +54,11 @@ mongoose.connect(MONGO_URI, {
     console.error('ℹ️ Using MONGO_URI from env:', Boolean(process.env.MONGO_URI));
   });
 
-// Render health checks (fast 200)
-app.get('/healthz', (req, res) => res.status(200).json({ status: 'ok', timestamp: Date.now() }));
+// Health check
+app.get('/', (req, res) => res.json({ status: 'AIMX Backend running', port: PORT }));
 
-// Main health
-app.get('/', (req, res) => res.json({ 
-  status: 'AIMX Backend running', 
-  port: PORT,
-  mongo: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-}));
-
-
-// IMPORTANT: 404 LAST - after all routes/health
+// 404 fallback
 app.use('*', (req, res) => res.status(404).json({ error: 'Route not found' }));
-
 
 // Global error handlers for Render stability
 process.on('uncaughtException', (err) => {
@@ -94,14 +85,11 @@ process.on('SIGTERM', async () => {
 
 // Start server only after Mongo is connected
 mongoose.connection.once('open', () => {
-  console.log('✅ Mongo ready - starting server...');
-  server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server ready on port ${PORT}`);
-    console.log(`📊 Health: http://${process.env.RENDER_EXTERNAL_HOSTNAME || 'localhost'}:${PORT}/healthz`);
-    console.log('✅ Render startup COMPLETE - service live');
+  server.listen(PORT, () => {
+    console.log(`🚀 Server + Socket.IO running on port ${PORT}`);
+    console.log(`📊 Health: http://${process.env.RENDER_EXTERNAL_HOSTNAME || 'localhost'}:${PORT}/`);
   });
 });
-
 
 // Fallback server start if Mongo fails (for health checks)
 mongoose.connection.on('error', (err) => {
