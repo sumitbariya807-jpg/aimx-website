@@ -6,7 +6,7 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb+srv://sunnybariya:sunnybariya@cluster0.xxgfaha.mongodb.net/aimx?retryWrites=true&w=majority';
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb+srv://sunnybariya:sunnybariya1@cluster0.xxgfaha.mongodb.net/aimx?retryWrites=true&w=majority';
 
 app.use(cors({
   origin: '*',
