@@ -9,31 +9,8 @@ const { verifyOrganizer } = require('../utils/adminAuth');
 const { sendRegistrationEmail, sendStatusEmail } = require('../utils/emailService');
 const { getNextId } = require('../utils/counter');
 
-router.post('/participants/admin/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password required' });
-    }
-  const email = username.trim().toLowerCase();
-    const organizer = await Organizer.findOne({ email });
-    if (!organizer || !(await organizer.comparePassword(password))) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    const token = jwt.sign(
-      { organizer: { id: organizer._id, email: organizer.email, name: organizer.name } }, 
-      JWT_SECRET
-    );
-    res.json({ 
-      success: true,
-      token, 
-      organizer: { id: organizer._id, email: organizer.email, name: organizer.name } 
-    });
-  } catch (error) {
-    console.error('Admin login error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+// REMOVED: admin login route - moved to organizers.js (Step 2 complete)
+// router.post('/participants/admin/login', ...);
 
 router.post('/participants/register', async (req, res) => {
   try {

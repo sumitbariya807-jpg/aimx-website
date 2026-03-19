@@ -1,13 +1,13 @@
-# Task Progress: Events Page & Schedule Timings Update
+# API 404 Fix - Progress Tracker
 
-## Previous (Complete)
-- [x] Remove Stumble filter
-- [x] No date changes needed
+## Plan Steps:
+- [x] 1. Fix Aimx-website/src/api.js template literal syntax & URLs
+- [x] 2. Create updated backend routes/participants.js (remove misplaced admin login)
+- [x] 3. Verify backend routes/organizers.js has admin login
+- [ ] 4. Test locally (vite dev + backend server)
+- [ ] 5. Deploy frontend to Vercel
+- [ ] 6. Test end-to-end registration form
+- [ ] 7. attempt_completion
 
-## New Steps
-- [x] Step 1: Create updated TODO.md
-- [ ] Step 2: Update schedule timings in App.jsx eventsData (Dance/Ramp/Singing/Guest/Panel)
-- [ ] Step 3: Verify and complete
-
-Updated: $(date)
+**Current: Steps 1-3 ✅ Backend routes clean - Ready for testing**
 

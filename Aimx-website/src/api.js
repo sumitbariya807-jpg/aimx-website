@@ -22,7 +22,7 @@ const getAdminHeaders = () => {
 
 export const adminLogin = async (email, password) => {
   await withDelay();
-  const response = await fetch(`${BASE_URL}/participants/admin/login`, {
+  const response = await fetch(`${BASE_URL}/api/organizers/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -44,7 +44,7 @@ export const adminLogout = () => {
 
 export const postRegistration = async (registrationData) => {
   await withDelay();
-  const response = await fetch(`${BASE_URL}/participants/register`, {
+  const response = await fetch(`${BASE_URL}/api/participants/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(registrationData)
@@ -55,7 +55,7 @@ export const postRegistration = async (registrationData) => {
 
 export const getRegistrations = async () => {
   await withDelay();
-  const response = await fetch(`${BASE_URL}/participants`, {
+  const response = await fetch(`${BASE_URL}/api/participants/list`, {
     headers: getAdminHeaders()
   });
   if (!response.ok) throw new Error(await response.text() || 'Fetch failed');
@@ -65,7 +65,7 @@ export const getRegistrations = async () => {
 
 export const getRegistrationById = async (participantId) => {
   await withDelay();
-  const response = await fetch(`${BASE_URL}/participants/${participantId}`);
+  const response = await fetch(`${BASE_URL}/api/participants/${participantId}`);
   if (!response.ok) return null;
   const data = await response.json();
   return Array.isArray(data) ? data[0] || null : data;
