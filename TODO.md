@@ -1,9 +1,1 @@
-# TODO Progress: Fix package.json merge conflicts
-
-- [x] 1. Confirm plan with user
-- [x] 2. Clean package.json (merge conflicts resolved)
-- [x] 3. Verify: npm install succeeded (181 packages added, 0 vulnerabilities); npm run lint attempted (eslint not in PATH, expected on Windows)
-- [x] 4. Task complete: package.json is valid JSON, workspace errors fixed.
-
-No further actions needed.
-
+# Production API Fix Progress&#10;&#10;## Plan Steps:&#10;- [x] Step 1: Create Aimx-website/.env with VITE_API_URL&#10;- [ ] Step 2: User replaces placeholder with actual Render URL (e.g. https://your-app.onrender.com)&#10;- [ ] Step 3: Add .env to .gitignore if needed (Vite auto-ignores)&#10;- [ ] Step 4: Redeploy frontend to Vercel: cd Aimx-website &amp;&amp; npm run build &amp;&amp; vercel --prod&#10;- [ ] Step 5: Test API calls in production&#10;&#10;## Updated API Example (already in src/api.js):&#10;```js&#10;const BASE_URL = (import.meta.env.VITE_API_URL || &#x27;/api&#x27;).replace(/\/$/, &#x27;&#x27;);&#10;// Uses: `${BASE_URL}/participants/register`&#10;```&#10;&#10;Next: Update .env with your Render URL and redeploy.&#10;

@@ -1,13 +1,16 @@
-# Task Progress: Update Events Page Heads
+# Production Deployment Fix Progress
 
-**Current Working Directory:** c:/Users/sunny/Downloads/my-projecty
+✅ **Plan Approved**
 
-## TODO Steps (from approved plan):
-- [ ] Step 1: Create TODO.md tracking file ✅ **DONE**
-- [x] Step 2: Edit Aimx-website/src/App.jsx ✅ **DONE**
-- [x] Step 3: Verify changes on /events page (check heads, phone links) ✅ **DONE**
-- [x] Step 4: Update TODO.md with completion status ✅ **DONE**
-- [x] Step 5: Task complete ✅ **DONE**
+## Breakdown:
+1. [x] Create frontend .env with VITE_API_URL  
+2. [x] Update backend CORS in server.js
+3. [x] Create backend .env with FRONTEND_URL
+4. [x] Create DEPLOY-PRODUCTION.md instructions
+5. [ ] User adds env vars to Vercel/Render dashboards
+6. [ ] Test production API calls
 
-**Status:** All steps completed. Events page now shows updated heads: Maruf (Workshop), Garima (Guest Session), Prashant (Panel Discussion) with correct phone numbers and WhatsApp/Call buttons.
+**Next: Update your Vercel/Render env vars and redeploy!**
+
+**Current Step: 1/6**
 

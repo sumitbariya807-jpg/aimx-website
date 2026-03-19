@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb+srv://sunnybariya:sunnybariya1@cluster0.xxgfaha.mongodb.net/aimx?retryWrites=true&w=majority';
 
 app.use(cors({
-  origin: '*',
+  origin: process.env.FRONTEND_URL || 'https://your-vercel-app.vercel.app',
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'OPTIONS', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -27,7 +27,7 @@ const http = require('http');
 const server = http.createServer(app);
 const io = require('socket.io')(server, {
   cors: {
-    origin: '*',
+    origin: process.env.FRONTEND_URL || 'https://your-vercel-app.vercel.app',
     methods: ['GET', 'POST']
   }
 });
