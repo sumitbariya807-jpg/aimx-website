@@ -22,9 +22,9 @@ console.log('✅ CORS configured for production (Render)');
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
-// Mount routes - root paths
-app.use('/api', require('./routes/participants'));
-app.use('/api', require('./routes/organizers'));
+// Mount routes
+app.use('/api/participants', require('./routes/participants'));
+app.use('/api/organizers', require('./routes/organizers'));
 
 // Socket.IO setup
 const http = require('http');
