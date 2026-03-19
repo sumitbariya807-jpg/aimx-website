@@ -69,7 +69,7 @@ router.get('/participants/list', verifyOrganizer, async (req, res) => {
   }
 });
 
-router.get('/participants/export/excel', verifyOrganizer, async (req, res) => {
+router.get('/export/excel', verifyOrganizer, async (req, res) => {
   try {
     const participants = await Participant.find().sort({ createdAt: -1 }).lean();
     const rows = participants.map((p) => ({
