@@ -1,1 +1,21 @@
-# Production API Fix Progress&#10;&#10;## Plan Steps:&#10;- [x] Step 1: Create Aimx-website/.env with VITE_API_URL&#10;- [ ] Step 2: User replaces placeholder with actual Render URL (e.g. https://your-app.onrender.com)&#10;- [ ] Step 3: Add .env to .gitignore if needed (Vite auto-ignores)&#10;- [ ] Step 4: Redeploy frontend to Vercel: cd Aimx-website &amp;&amp; npm run build &amp;&amp; vercel --prod&#10;- [ ] Step 5: Test API calls in production&#10;&#10;## Updated API Example (already in src/api.js):&#10;```js&#10;const BASE_URL = (import.meta.env.VITE_API_URL || &#x27;/api&#x27;).replace(/\/$/, &#x27;&#x27;);&#10;// Uses: `${BASE_URL}/participants/register`&#10;```&#10;&#10;Next: Update .env with your Render URL and redeploy.&#10;
+# API Fix Task Progress ✅ COMPLETE
+
+## Changes Made:
+- Fixed BASE_URL in Aimx-website/src/api.js: Now `(import.meta.env.VITE_API_URL || '') + '/api'`
+  - Prod: https://aimx-website-1.onrender.com/api/participants/register
+  - Local: /api (proxied to localhost:5000 via vite.config.js)
+- Confirmed: postRegistration uses `/participants/register`
+- Confirmed: adminLogin uses `/participants/admin/login` with correct body {username, password}
+- No localhost hardcodes
+- Backend routes match (read participants.js)
+- vite.config.js hardcodes VITE_API_URL for prod builds
+
+## Test:
+1. Local: `cd Aimx-website && npm run dev` → uses proxy
+2. Prod: Vercel deploy → uses Render URL + /api
+
+Both APIs ready, no 404s expected.
+
+## Next:
+- Add to .env: VITE_API_URL=https://aimx-website-1.onrender.com (vite.config.js overrides for build)
+- Redeploy Vercel

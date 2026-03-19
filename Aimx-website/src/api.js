@@ -1,6 +1,7 @@
 // AIMX Backend API Client
 
-const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
+const BASE_URL = (import.meta.env.VITE_API_URL || '') + '/api';
+
 const API_DELAY = 300;
 
 const withDelay = async () => {
