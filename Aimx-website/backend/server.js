@@ -31,10 +31,7 @@ const http = require('http');
 const server = http.createServer(app);
 const io = require('socket.io')(server, {
   cors: {
-    origin: [
-      'https://aimx-website-gilt.vercel.app',
-      'http://localhost:5173'
-    ],
+    origin: true,
     methods: ['GET', 'POST']
   }
 });
@@ -75,12 +72,15 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('SIGTERM received, closing server');
-  mongoose.connection.close(() => {
+  try {
+    await mongoose.connection.close();
     console.log('MongoDB connection closed');
-    process.exit(0);
-  });
+  } catch (err) {
+    console.error('Mongo close error:', err);
+  }
+  process.exit(0);
 });
 
 // Start server only after Mongo is connected

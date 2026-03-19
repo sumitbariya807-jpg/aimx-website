@@ -1,6 +1,7 @@
 // AIMX Backend API Client
 
-const BASE_URL = "https://aimx-website-1.onrender.com/api";
+const BASE_URL = "https://aimx-website.onrender.com/api";
+console.log('API_BASE:', BASE_URL);
 console.log("FINAL API:", BASE_URL);
 
 const API_DELAY = 300;
