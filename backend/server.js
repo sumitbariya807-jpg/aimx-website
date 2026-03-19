@@ -13,7 +13,8 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'OPTIONS', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));\n\nconsole.log('✅ CORS configured for production (Render)');
+}));
+console.log('✅ CORS configured for production (Render)');
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -29,7 +30,8 @@ const io = require('socket.io')(server, {
     origin: '*',
     methods: ['GET', 'POST']
   }
-});\n\nconsole.log('✅ Socket.IO configured for production');
+});
+console.log('✅ Socket.IO configured for production');
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
@@ -37,7 +39,6 @@ io.on('connection', (socket) => {
 });
 
 mongoose.connect(MONGO_URI, {
-
   bufferCommands: false,
   serverSelectionTimeoutMS: 30000,
   maxPoolSize: 10,
@@ -90,5 +91,3 @@ mongoose.connection.on('error', (err) => {
     console.log(`🚀 Server running on port ${PORT} (Mongo unavailable)`);
   });
 });
-
-
