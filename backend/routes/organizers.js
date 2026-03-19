@@ -42,30 +42,21 @@ router.post('/register', async (req, res) => {
 // POST /api/organizers/login
 router.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body;  // Match frontend payload
-    const email = username ? username.trim().toLowerCase() : '';
-    
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Username and password required' });
-    }
-    
+    const { email, password } = req.body;
     const organizer = await Organizer.findOne({ email });
     if (!organizer || !(await organizer.comparePassword(password))) {
       return res.status(401).json({ error: 'Invalid credentials' });
+      console.log(req.body);
     }
 
     const token = jwt.sign(
-      { organizer: { id: organizer._id, email: organizer.email, name: organizer.name } }, 
-      JWT_SECRET
+      { id: organizer._id, email: organizer.email, role: organizer.role },
+      JWT_SECRET,
+      { expiresIn: '7d' }
     );
 
-    res.json({ 
-      success: true,
-      token, 
-      organizer: { id: organizer._id, email: organizer.email, name: organizer.name } 
-    });
+    res.json({ success: true, token, organizer: { id: organizer._id, email: organizer.email, name: organizer.name } });
   } catch (error) {
-    console.error('Admin login error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
