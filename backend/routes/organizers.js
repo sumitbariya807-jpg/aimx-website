@@ -1,7 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const Organizer = require('../models/Organizer');
-const { sendRegistrationEmail } = require('../utils/emailService');
+const { sendRegistrationEmail } = require('../utils/emailService-fixed.js');
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'aimx-jwt-secret-2026';
