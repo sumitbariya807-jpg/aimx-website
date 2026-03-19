@@ -13,6 +13,6 @@ export default defineConfig({
     }
   },
   define: {
-    'import.meta.env.VITE_API_URL': JSON.stringify('https://aimx-website-1.onrender.com')
+'import.meta.env.VITE_API_URL': JSON.stringify('https://aimx-website.onrender.com')
   }
 })
