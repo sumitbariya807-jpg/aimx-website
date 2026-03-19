@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation, useSearchParams, useParams } from 'react-router-dom'
 import Layout from './Layout.jsx'
 import EventPayment from './EventPayment.jsx';
+
+
 import './App.css'
 import './EventRegistration.css'
 import './hero-buttons.css'
@@ -269,10 +271,11 @@ const eventsData = [
 // E-Sports
 { id: 7, name: 'BGMI Tournament', category: 'E-Sports', price: 300, teamSize: 4, feeText: '₹300, 4 members', icon: '🎮', badgeColor: 'bg-gradient-to-r from-emerald-500 to-teal-500', startTime: '12:00 PM', endTime: '3:00 PM', location: 'Gaming Zone', head: {name: 'Soham Tambade', phone: '8356054488'} },
   // AIMX Talks (Free)
-{ id: 8, name: 'Workshop', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '📚', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: 'TBA', endTime: 'TBA', location: 'Seminar Hall', head: {name: 'Rashmi Pathak', phone: '9876543217'} },
-{ id: 9, name: 'Guest Session', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '👥', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '9:30 AM', endTime: '12:00 PM', location: 'Auditorium', head: {name: 'Rashmi Pathak', phone: '9876543218'} },
-{ id: 10, name: 'Panel Discussion', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '💬', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '12:15 PM', endTime: '1:30 PM', location: 'Main Hall', head: {name: 'Rashmi Pathak', phone: '9876543219'} }
-]
+{ id: 8, name: 'Workshop', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '📚', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '11:00 AM', endTime: '12:00 PM', location: 'Workshop Room', head: {name: 'Maruf', phone: '9040286664'} },
+{ id: 9, name: 'Guest Session', subname: 'events head Garima', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '👥', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '11:45 AM', endTime: '12:15 PM', location: 'Main Hall', head: {name: 'Garima', phone: '9356063809'} },
+{ id: 10, name: 'Panel Discussion', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '💬', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '12:15 PM', endTime: '1:30 PM', location: 'Main Hall', head: {name: 'Prashant', phone: '7208503692'} },
+{ id: 11, name: 'Stumble', category: 'E-Sports', price: 30, teamSize: 1, feeText: '₹30, 1 member', icon: '🎮', badgeColor: 'bg-gradient-to-r from-emerald-500 to-teal-500', startTime: '1:00 PM', endTime: '2:30 PM', location: 'Gaming Zone', head: {name: 'Zaid', phone: '9324649291'} }
+  ]
 
 // eventPrices no longer needed - use event.price
 
@@ -472,7 +475,7 @@ function Home() {
               <p>The biggest tech fest organized by AIMSR. Join us on 27th March 2026 for an unforgettable experience.</p>
             </div>
             <div className="about-stats">
-              <div className="stat-card"><div className="stat-number">9</div><div className="stat-label">Events</div></div>
+<div className="stat-card"><div className="stat-number">10</div><div className="stat-label">Events</div></div>
               <div className="stat-card"><div className="stat-number">15+</div><div className="stat-label">Colleges</div></div>
               <div className="stat-card"><div className="stat-number">200+</div><div className="stat-label">Participants</div></div>
               <div className="stat-card"><div className="stat-number">🏆</div><div className="stat-label">Prizes</div></div>
@@ -485,9 +488,9 @@ function Home() {
         <ScrollReveal>
           <h2 className="section-title">Event Categories</h2>
         <div className="categories-grid">
-            <Link to="/events?cat=Technical" className="category-card"><div className="category-icon">💻</div><h3>Technical</h3><p>4 Events</p></Link>
+            <Link to="/events?cat=Technical" className="category-card"><div className="category-icon">💻</div><h3>Technical</h3><p>3 Events</p></Link>
             <Link to="/events?cat=Cultural" className="category-card"><div className="category-icon">🎭</div><h3>Cultural</h3><p>2 Events</p></Link>
-            <Link to="/events?cat=E-Sports" className="category-card"><div className="category-icon">🎮</div><h3>E-Sports</h3><p>2 Events</p></Link>
+            <Link to="/events?cat=E-Sports" className="category-card"><div className="category-icon">🎮</div><h3>E-Sports</h3><p>3 Events</p></Link>
           </div>
         </ScrollReveal>
       </section>
@@ -502,8 +505,6 @@ function Events() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [prefillData, setPrefillData] = useState(null);
-  
   const displayEvents = eventsData.filter(event => {
     const matchesFilter = filter === 'all' || event.category === filter
     const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -511,39 +512,28 @@ function Events() {
     return matchesFilter && matchesSearch
   })
   
-  const handleRegisterClick = (event) => {
-    setSelectedEvent(event);
-    setShowModal(true);
-  };
+  const navigate = useNavigate();
   
-  const handlePaymentComplete = ({ event, transactionId, screenshot = null }) => {
-    setPrefillData({ 
-      eventId: event.id, 
-      eventName: event.name, 
-      price: event.price,
-      transactionId,
-      screenshot
-    });
-    setShowModal(false);
-    // Navigate to register with prefilled data
+  const handleRegisterClick = (event) => {
     const params = new URLSearchParams({ event: event.id });
-    if (transactionId) params.append('txnId', transactionId);
     navigate(`/register?${params.toString()}`);
   };
-  
-  const navigate = useNavigate();
+
   
   return (
     <>
       <section className="section" style={{paddingTop: '120px'}}>
         <ScrollReveal>
           <h1 className="section-title">Events</h1>
+
+
           <div className="search-bar">
             <input type="text" placeholder="Search events..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="search-input" />
           </div>
           <div className="events-filter">
             <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All</button>
             <button className={`filter-btn ${filter === 'Technical' ? 'active' : ''}`} onClick={() => setFilter('Technical')}>Technical</button>
+            <button className={`filter-btn stumble-btn ${filter === 'Stumble' ? 'active' : ''}`} onClick={() => setFilter('Stumble')}>Stumble</button>
             <button className={`filter-btn ${filter === 'Cultural' ? 'active' : ''}`} onClick={() => setFilter('Cultural')}>Cultural</button>
             <button className={`filter-btn ${filter === 'E-Sports' ? 'active' : ''}`} onClick={() => setFilter('E-Sports')}>E-Sports</button>
           </div>
@@ -559,7 +549,9 @@ function Events() {
                 </div>
                 <div className="mission-card-body">
                   <h3 className="mission-title">{event.name}</h3>
-{(event.id === 1 || event.id === 2 || event.id === 4 || event.id === 5 || event.id === 7) && (
+{(event.id === 1 || event.id === 2 || event.id === 4 || event.id === 5 || event.id === 6 || event.id === 7 || event.id === 11) && (
+
+
                     <div className={`event-rules event-id-${event.id}`}>
                       <p><strong>Rules:</strong></p>
                       <ul>
@@ -614,9 +606,32 @@ function Events() {
                             <li>Cheating, teaming, or hacking will lead to disqualification.</li>
                           </>
                         )}
+                        {(event.id === 11) && (
+                          <>
+                            <li>Players must use their registered IGN, report on time, and avoid intentional teaming, ghosting, or sharing match details; late entry may lead to disqualification.</li>
+                            <li>The tournament will be played in Custom Party / Solo Elimination mode on Stumble Guys mobile</li>
+                            <li>Maintain sportsmanlike behavior; abusive, toxic conduct or cheating of any kind will result in immediate disqualification.</li>
+                            <li>Participants are responsible for their own device, internet, and power matches will not be restarted due to individual technical issues or game glitches.</li>
+                            <li>Players can play multiple times by paying the entry fee for each attempt; every entry is treated as a new game.</li>
+                            <li>Players may be disqualified for cheating, rule violations, misbehavior, absence at match time, or sharing room codes or credentials.</li>
+                            <li>The organizers' decisions, which are final.</li>
+                          </>
+                        )}
                       </ul>
                     </div>
                   )}
+
+                        {(event.id === 6) && (
+                          <>
+                            <li>Only solo performances are allowed, and participants must be present at the reporting time to confirm their participation.</li>
+                            <li>Each participant must perform within a strict time limit of 3 minutes. Exceeding the time limit may result in negative marking or disqualification, and the track may be stopped once the allotted time is over.</li>
+                            <li>All performances must be completely live, and lip-syncing or pre-recorded vocals are not permitted. </li>
+                            <li>Participants must bring their own karaoke track in a compatible format, and they may also bring their own musical instrument if they wish to perform with live accompaniment.</li>
+                            <li>Performances will be judged on voice quality, pitch accuracy, rhythm and timing, expression, song selection, confidence, and overall stage presence.</li>
+                            <li>Participants must maintain proper discipline and decorum. The use of inappropriate lyrics, offensive content, or any unfair practices will lead to immediate disqualification, and the decisions of the judges and organizers will be final and binding.</li>
+                          </>
+                        )}
+
                   <p className="mission-subtitle">{event.subname}</p>
                   <div className="mission-details">
                     <p>🕐 {event.startTime} - {event.endTime}</p>
@@ -702,7 +717,7 @@ function Registration() {
   
   const generateQR = async (amount) => {
     if (amount > 0) {
-      const upiLink = `upi://pay?pa=ashutoshdp2003@okaxis&pn=AIMX%20Events&am=${amount}&cu=INR`;
+      const upiLink = `upi://pay?pa=ashutoshdp2003@okaxis&pn=AIMX Events ${selectedEvent?.name || 'Event'}&am=${amount}&cu=INR&tn=AIMX ${selectedEvent?.name || 'Event'}`;
       try {
         const url = await QRCode.toDataURL(upiLink);
         setQrCode(url);
@@ -714,6 +729,7 @@ function Registration() {
       setQrCode('');
     }
   };
+
   
   const handleCategoryChange = (e) => {
     const newCategory = e.target.value
@@ -993,12 +1009,21 @@ setFormData(prev => ({...prev, event: eventId.toString(), eventName: event.name,
                     <div className="payment-event">{selectedEvent.name}</div>
                     <div className="qr-price">₹{selectedEvent.price}</div>
                     <p className="upi-id-small">UPI ID: ashutoshdp2003@okaxis</p>
-                    <img src="/assets/pay.jpeg" alt="UPI QR Code" className="pay-small" />
-                    <p className="qr-instruction">Scan to pay using any UPI app</p>
+                    <div className="qr-container-reg">
+                      {qrCode ? (
+                        <img src={qrCode} alt="Dynamic UPI QR Code" className="dynamic-qr pay-small" />
+                      ) : (
+                        <div className="qr-placeholder">
+                          <p>Select event to generate QR</p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="qr-instruction">Scan to pay ₹{selectedEvent?.price || 0} (pre-filled amount)</p>
                   </div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Transaction ID * (12 digits)</label>
+
                   <input
                     type="text"
                     name="transactionId"

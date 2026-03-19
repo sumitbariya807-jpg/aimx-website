@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import QRCode from 'qrcode';
 
 const UPI_PA = 'ashutoshdp2003@okaxis';
 const UPI_PN = 'AIMX%20Events';
