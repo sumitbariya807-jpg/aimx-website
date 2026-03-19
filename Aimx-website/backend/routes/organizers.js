@@ -7,7 +7,7 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'aimx-jwt-secret-2026';
 
 // POST /api/organizers/register
-router.post('/register', async (req, res) => {
+router.post('/organizers/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
     const organizer = new Organizer({ email, password, name });
@@ -40,7 +40,7 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/organizers/login
-router.post('/login', async (req, res) => {
+router.post('/organizers/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const organizer = await Organizer.findOne({ email });
