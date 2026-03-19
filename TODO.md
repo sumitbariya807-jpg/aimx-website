@@ -1,17 +1,12 @@
-# AIMX Registration UI Update - TODO
+# Task Progress: Update Events Page Heads
 
-## Steps:
-- [x] 1. Create this TODO.md
-- [x] 2. Read and analyze EventRegistration.css
-- [x] 3. Implement CSS improvements:
-  - [x]   a. Main glass card refinements
-  - [x]   b. Input consistency and neon focus
-  - [x]   c. Spacing and form-row alignment
-  - [x]   d. Payment section centering/QR sizing
-  - [x]   e. Upload UI dashed hover/text
-  - [x]   f. Submit button gradient/hover/mobile
-  - [x]   g. Mobile responsiveness (1-col)
-- [ ] 4. Test with `cd Aimx-website && npm run dev`, check /register
-- [x] 5. Mark complete and demo
+**Current Working Directory:** c:/Users/sunny/Downloads/my-projecty
 
-**Status: Completed - CSS updated per plan**
+## TODO Steps (from approved plan):
+- [ ] Step 1: Create TODO.md tracking file ✅ **DONE**
+- [x] Step 2: Edit Aimx-website/src/App.jsx ✅ **DONE**
+- [x] Step 3: Verify changes on /events page (check heads, phone links) ✅ **DONE**
+- [x] Step 4: Update TODO.md with completion status ✅ **DONE**
+- [x] Step 5: Task complete ✅ **DONE**
+
+**Status:** All steps completed. Events page now shows updated heads: Maruf (Workshop), Garima (Guest Session), Prashant (Panel Discussion) with correct phone numbers and WhatsApp/Call buttons.
