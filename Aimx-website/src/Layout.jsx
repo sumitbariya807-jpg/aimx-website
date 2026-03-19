@@ -20,7 +20,6 @@ function Navbar() {
         </button>
       </div>
 
-
       
       <div className={`navbar-links ${isMenuOpen ? 'open' : ''}`}>
         <Link to="/" onClick={() => setIsMenuOpen(false)}>Home</Link>
@@ -56,8 +55,9 @@ function Footer() {
           <div className="footer-section">
             <h3>Contact</h3>
             <p>📍 Aditya Institute of Management Studies and Research</p>
-            <p>📞 +91 8070123440 Vishwajit</p>
+            <p>📞 +91 8104834173 Prince</p>
             <p>✉️ infoaimx2026@gmail.com</p>
+            <button className="btn btn-primary" onClick={() => window.location.href = 'mailto:infoaimx2026@gmail.com?subject=AIMX 2026 Event Query'}>💬 Ask Query</button>
           </div>
           <div className="footer-section">
             <h3>Follow Us</h3>

@@ -263,17 +263,18 @@ const eventsData = [
 // Technical
 { id: 1, name: 'UI/UX Battle – Vice City Visuals', category: 'Technical', price: 50, teamSize: 1, feeText: '₹50, 1 member', icon: '🎨', badgeColor: 'bg-gradient-to-r from-blue-500 to-purple-600', startTime: '10:00 AM', endTime: '11:30 AM', location: 'Design Lab', head: {name: 'Bhagyesh Pandey', phone: '9075930985'} },
 { id: 2, name: 'Hackathon – Hack Wanted', category: 'Technical', price: 300, teamSize: 4, feeText: '₹300, 2–4 members', icon: '💻', badgeColor: 'bg-gradient-to-r from-blue-500 to-purple-600', startTime: '9:30 AM', endTime: '5:00 PM', location: 'Main Hall', head: {name: 'Aman Tripathi', phone: '8303026772'} },
-{ id: 3, name: 'Debugging', category: 'Technical', price: 50, teamSize: 1, feeText: '₹50, 1 member', icon: '🐛', badgeColor: 'bg-gradient-to-r from-blue-500 to-purple-600', startTime: '12:00 PM', endTime: '1:30 PM', location: 'Tech Lab', head: {name: 'Aisha Khan', phone: '9876543212'} },
+  { id: 3, name: 'Debugging', category: 'Technical', price: 50, teamSize: 1, feeText: '₹50, 1 member', icon: '🐛', badgeColor: 'bg-gradient-to-r from-blue-500 to-purple-600', startTime: '12:00 PM', endTime: '1:30 PM', location: 'Tech Lab', head: {name: 'Prathamesh', phone: '8356050992'} },
+
 // Cultural
-{ id: 4, name: 'Dance', category: 'Cultural', price: 400, teamSize: 6, feeText: '₹400, 3–6 members', icon: '💃', badgeColor: 'bg-gradient-to-r from-pink-500 to-rose-500', startTime: '5:00 PM', endTime: '6:30 PM', location: 'Main Stage', head: {name: 'Tanisha', phone: '7208577313'} },
-{ id: 5, name: 'Ramp Walk', category: 'Cultural', price: 100, teamSize: 1, feeText: '₹100, 1 member', icon: '👗', badgeColor: 'bg-gradient-to-r from-pink-500 to-rose-500', startTime: '4:00 PM', endTime: '5:00 PM', location: 'Stage', head: {name: 'Vaishnavi', phone: '8928002367'} },
-{ id: 6, name: 'Singing', category: 'Cultural', price: 100, teamSize: 1, feeText: '₹100, 1 member', icon: '🎤', badgeColor: 'bg-gradient-to-r from-pink-500 to-rose-500', startTime: '3:00 PM', endTime: '4:00 PM', location: 'Auditorium', head: {name: 'Krisha', phone: '9429659108'} },
+{ id: 4, name: 'Dance', category: 'Cultural', price: 400, teamSize: 6, feeText: '₹400, 3–6 members', icon: '💃', badgeColor: 'bg-gradient-to-r from-pink-500 to-rose-500', startTime: '6:00 PM', endTime: '7:30 PM', location: 'Main Stage', head: {name: 'Tanisha', phone: '7208577313'} },
+{ id: 5, name: 'Ramp Walk', category: 'Cultural', price: 100, teamSize: 1, feeText: '₹100, 1 member', icon: '👗', badgeColor: 'bg-gradient-to-r from-pink-500 to-rose-500', startTime: '5:00 PM', endTime: '6:00 PM', location: 'Stage', head: {name: 'Vaishnavi', phone: '8928002367'} },
+{ id: 6, name: 'Singing', category: 'Cultural', price: 100, teamSize: 1, feeText: '₹100, 1 member', icon: '🎤', badgeColor: 'bg-gradient-to-r from-pink-500 to-rose-500', startTime: '4:00 PM', endTime: '5:00 PM', location: 'Auditorium', head: {name: 'Krisha', phone: '9429659108'} },
 // E-Sports
 { id: 7, name: 'BGMI Tournament', category: 'E-Sports', price: 300, teamSize: 4, feeText: '₹300, 4 members', icon: '🎮', badgeColor: 'bg-gradient-to-r from-emerald-500 to-teal-500', startTime: '12:00 PM', endTime: '3:00 PM', location: 'Gaming Zone', head: {name: 'Soham Tambade', phone: '8356054488'} },
   // AIMX Talks (Free)
 { id: 8, name: 'Workshop', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '📚', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '11:00 AM', endTime: '12:00 PM', location: 'Workshop Room', head: {name: 'Maruf', phone: '9040286664'} },
-{ id: 9, name: 'Guest Session', subname: 'events head Garima', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '👥', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '11:45 AM', endTime: '12:15 PM', location: 'Main Hall', head: {name: 'Garima', phone: '9356063809'} },
-{ id: 10, name: 'Panel Discussion', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '💬', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '12:15 PM', endTime: '1:30 PM', location: 'Main Hall', head: {name: 'Prashant', phone: '7208503692'} },
+{ id: 9, name: 'Guest Session', subname: 'events head Garima', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '👥', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '9:00 AM', endTime: '1:00 PM', location: 'Main Hall', head: {name: 'Garima', phone: '9356063809'} },
+{ id: 10, name: 'Panel Discussion', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '💬', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '9:00 AM', endTime: '1:00 PM', location: 'Main Hall', head: {name: 'Prashant', phone: '7208503692'} },
 { id: 11, name: 'Stumble', category: 'E-Sports', price: 30, teamSize: 1, feeText: '₹30, 1 member', icon: '🎮', badgeColor: 'bg-gradient-to-r from-emerald-500 to-teal-500', startTime: '1:00 PM', endTime: '2:30 PM', location: 'Gaming Zone', head: {name: 'Zaid', phone: '9324649291'} }
   ]
 
@@ -350,8 +351,9 @@ function Footer() {
         <div className="footer-section">
           <h3>Contact</h3>
           <p>📍 Aditya Institute of Management Studies and Research</p>
-          <p>📞 +91 8070123440 Vishwajit</p>
+          <p>📞 +91 8104834173 Prince</p>
           <p>✉️ infoaimx2026@gmail.com</p>
+          <button className="btn btn-primary" onClick={() => window.location.href = 'mailto:infoaimx2026@gmail.com?subject=AIMX 2026 Event Query'}>💬 Ask Query</button>
         </div>
         <div className="footer-section">
           <h3>Follow Us</h3>
@@ -472,12 +474,12 @@ function Home() {
           <div className="about-content">
             <div className="about-text">
               <h3>Welcome to AIMX 2026</h3>
-              <p>The biggest tech fest organized by AIMSR. Join us on 27th March 2026 for an unforgettable experience.</p>
+Join us on 10th April 2026 for an unforgettable experience.
             </div>
             <div className="about-stats">
-<div className="stat-card"><div className="stat-number">10</div><div className="stat-label">Events</div></div>
-              <div className="stat-card"><div className="stat-number">15+</div><div className="stat-label">Colleges</div></div>
-              <div className="stat-card"><div className="stat-number">200+</div><div className="stat-label">Participants</div></div>
+<div className="stat-card"><div className="stat-number">8</div><div className="stat-label">Events</div></div>
+              <div className="stat-card"><div className="stat-number">3</div><div className="stat-label">AIMX Talks</div></div>
+              <div className="stat-card"><div className="stat-number">40+</div><div className="stat-label">College Invites</div></div>
               <div className="stat-card"><div className="stat-number">🏆</div><div className="stat-label">Prizes</div></div>
             </div>
           </div>
@@ -489,8 +491,9 @@ function Home() {
           <h2 className="section-title">Event Categories</h2>
         <div className="categories-grid">
             <Link to="/events?cat=Technical" className="category-card"><div className="category-icon">💻</div><h3>Technical</h3><p>3 Events</p></Link>
-            <Link to="/events?cat=Cultural" className="category-card"><div className="category-icon">🎭</div><h3>Cultural</h3><p>2 Events</p></Link>
-            <Link to="/events?cat=E-Sports" className="category-card"><div className="category-icon">🎮</div><h3>E-Sports</h3><p>3 Events</p></Link>
+            <Link to="/events?cat=Cultural" className="category-card"><div className="category-icon">🎭</div><h3>Cultural</h3><p>3 Events</p></Link>
+            <Link to="/events?cat=E-Sports" className="category-card"><div className="category-icon">🎮</div><h3>E-Sports</h3><p>2 Events</p></Link>
+            <Link to="/events?cat=AIMX Talks" className="category-card"><div className="category-icon">💬</div><h3>AIMX Talks</h3><p>3 Events</p></Link>
           </div>
         </ScrollReveal>
       </section>
@@ -533,7 +536,7 @@ function Events() {
           <div className="events-filter">
             <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All</button>
             <button className={`filter-btn ${filter === 'Technical' ? 'active' : ''}`} onClick={() => setFilter('Technical')}>Technical</button>
-            <button className={`filter-btn stumble-btn ${filter === 'Stumble' ? 'active' : ''}`} onClick={() => setFilter('Stumble')}>Stumble</button>
+
             <button className={`filter-btn ${filter === 'Cultural' ? 'active' : ''}`} onClick={() => setFilter('Cultural')}>Cultural</button>
             <button className={`filter-btn ${filter === 'E-Sports' ? 'active' : ''}`} onClick={() => setFilter('E-Sports')}>E-Sports</button>
           </div>
@@ -549,7 +552,7 @@ function Events() {
                 </div>
                 <div className="mission-card-body">
                   <h3 className="mission-title">{event.name}</h3>
-{(event.id === 1 || event.id === 2 || event.id === 4 || event.id === 5 || event.id === 6 || event.id === 7 || event.id === 11) && (
+{(event.id === 1 || event.id === 2 || event.id === 3 || event.id === 4 || event.id === 5 || event.id === 6 || event.id === 7 || event.id === 11) && (
 
 
                     <div className={`event-rules event-id-${event.id}`}>
@@ -595,6 +598,14 @@ function Events() {
                             <li>Props Policy: Only hand-held props such as a jacket, cap, sunglasses, fake money, or toy phone are allowed.</li>
                             <li>Judging Authority: All judges' and organizers' decisions are final and binding.</li>
                             <li>Judging Criteria: Performances will be evaluated based on walk & posture, confidence & attitude, costume & styling, and facial expressions & character portrayal.</li>
+                          </>
+                        )}
+                        {(event.id === 3) && (
+                          <>
+                            <li>Teams of 2 (intercollegiate), 1 laptop/team, smartphones for QR/instructions.</li>
+                            <li>Round 1: easy-medium MCQs/code snippets (30min).</li>
+                            <li>Round 2: debugging login/cart/banking bugs, fix+execute+explain (30min), bonus clean code.</li>
+                            <li>Rules: report 15min early, same members, no collaboration, internet restrictions, judges final.</li>
                           </>
                         )}
                         {(event.id === 7) && (
@@ -662,10 +673,10 @@ function Events() {
 
 function Schedule() {
   return (
-    <section className="section" style={{paddingTop: '120px'}}>
+    <section className="section schedule-page" style={{paddingTop: '120px'}}>
       <ScrollReveal>
         <h1 className="section-title">Schedule</h1>
-        <p style={{textAlign: 'center', marginBottom: '40px', color: 'rgba(255,255,255,0.7)'}}>27th March 2026</p>
+        <div className="schedule-date">10th April 2026</div>
       </ScrollReveal>
       
       <div className="schedule-timeline">
@@ -801,6 +812,10 @@ setFormData(prev => ({...prev, event: eventId.toString(), eventName: event.name,
         alert('Please upload payment screenshot!')
         return
       }
+      if (!termsAccepted) {
+        alert('You must accept the Terms & Conditions to register!')
+        return
+      }
     }
     
     setLoading(true)
@@ -844,7 +859,7 @@ setFormData(prev => ({...prev, event: eventId.toString(), eventName: event.name,
         <ScrollReveal>
           <div className="success-card">
             <h2 style={{color: "white", fontSize: "2.5rem"}}>Registration Successful!</h2>
-            <h2 style={{color: "white", fontSize: "3rem", margin: "20px 0"}}>{participantId}</h2>
+            <h2 style={{color: "white", fontSize: "3rem", margin: "20px 0", textShadow: "0 0 20px #00D4FF, 0 0 40px #FF6B35", background: "linear-gradient(135deg, #00D4FF, #FF6B35)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text"}}>{participantId}</h2>
             <p style={{color: "white", fontSize: "1.5rem"}}>Status: <span style={{color: '#FFC107', fontWeight: 'bold'}}>PENDING</span></p>
             <button className="btn btn-primary" onClick={() => navigate('/login')}>Check Status</button>
           </div>
@@ -859,6 +874,11 @@ setFormData(prev => ({...prev, event: eventId.toString(), eventName: event.name,
         <div className="registration-container">
           <form className="registration-form" onSubmit={handleSubmit}>
             <h2 className="form-title">Register for AIMX 2026</h2>
+            <div style={{background: 'rgba(255,193,7,0.2)', border: '2px solid #FFC107', borderRadius: '12px', padding: '20px', marginBottom: '30px', textAlign: 'center'}}>
+              <p style={{color: '#FFC107', fontSize: '1.3rem', fontWeight: 'bold', margin: 0}}>
+                📛 College ID Card is MANDATORY with valid Government ID at event entry
+              </p>
+            </div>
 
             <div className="form-row">
               <div className="form-group">
@@ -1070,6 +1090,19 @@ setFormData(prev => ({...prev, event: eventId.toString(), eventName: event.name,
                     }}
                   />
                 </div>
+                <div className="terms-section">
+                  <label className="terms-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={termsAccepted}
+                      onChange={(e) => setTermsAccepted(e.target.checked)}
+                      required
+                      className="terms-checkbox"
+                    />
+                    <span className="checkmark"></span>
+                    <span style={{marginLeft: '10px'}}>I confirm that I am fully responsible for the information provided in this registration. If any information is found to be false or incorrect, the organizers have full authority to disqualify me without prior notice.</span>
+                  </label>
+                </div>
               </>
             )}
             {selectedEvent && selectedEvent.price === 0 && (
@@ -1280,7 +1313,7 @@ function ParticipantDashboard() {
                 link.href = qrUrl;
                 link.download = `AIMX-${participant.participantId}-ticket.png`;
                 link.click();
-              }}>📥 Download Ticket</button>
+              }} >📥 Download Ticket</button>
               <p>Show this QR at event entry for verification</p>
             </div>
           )}
@@ -1447,3 +1480,4 @@ function App() {
 }
 
 export default App
+

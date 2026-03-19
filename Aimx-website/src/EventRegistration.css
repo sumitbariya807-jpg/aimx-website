@@ -355,6 +355,102 @@ select.form-input:hover option:hover {
   color: rgba(255,255,255,0.6);
 }
 
+/* Terms & Conditions Styles */
+.terms-section {
+  margin: 24px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255,107,53,0.1), rgba(0,212,255,0.08));
+  border: 2px solid rgba(255,107,53,0.3);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+}
+
+.terms-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.95);
+  user-select: none;
+}
+
+.terms-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.checkmark {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255,107,53,0.5);
+  border-radius: 6px;
+  margin-right: 8px;
+  flex-shrink: 0;
+  position: relative;
+  background: rgba(13,13,26,0.8);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.terms-checkbox-label:hover .checkmark {
+  border-color: #FF6B35;
+  box-shadow: 0 0 20px rgba(255,107,53,0.4);
+}
+
+.terms-checkbox:checked + .checkmark {
+  background: linear-gradient(135deg, #FF6B35, #00D4FF);
+  border-color: #FF6B35;
+  animation: checkmarkPulse 0.4s ease;
+}
+
+.terms-checkbox:checked + .checkmark::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  animation: scaleIn 0.3s ease forwards;
+}
+
+@keyframes checkmarkPulse {
+  0% { transform: scale(0.95); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes scaleIn {
+  to { transform: translate(-50%, -50%) scale(1); }
+}
+
+.terms-section span:last-child {
+  flex: 1;
+  max-width: calc(100% - 40px);
+}
+
+@media (max-width: 768px) {
+  .terms-checkbox-label {
+    font-size: 0.9rem;
+    gap: 10px;
+  }
+  
+  .checkmark {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .terms-section {
+    padding: 16px;
+    margin: 20px 0;
+  }
+}
+
 /* Payment Modal Styles */
 .payment-modal-overlay {
   position: fixed;

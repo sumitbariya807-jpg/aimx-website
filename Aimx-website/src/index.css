@@ -368,3 +368,100 @@ h1, h2, h3 {
   color: white !important;
   font-size: 3rem;
 }
+
+/* ========================================
+   FOOTER "ASK QUERY" BUTTON - GTA NEON THEME MATCH
+   ======================================== */
+
+/* Base footer button - inherits .btn .btn-primary but enhanced for footer BG */
+.footer .btn-primary {
+  position: relative;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #FF6B35, #FF00FF, #00D4FF);
+  background-size: 300% 300%;
+  border: none;
+  border-radius: 12px;
+  color: white !important;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  animation: gradientShift 3s ease infinite;
+  box-shadow: 
+    0 8px 25px rgba(255, 107, 53, 0.5),
+    0 0 30px rgba(255, 107, 53, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer .btn-primary:hover {
+  transform: translateY(-6px) scale(1.08);
+  background-position: 100% 50%;
+  box-shadow: 
+    0 20px 45px rgba(255, 107, 53, 0.7),
+    0 0 50px rgba(255, 0, 255, 0.5),
+    0 0 60px rgba(0, 212, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.footer .btn-primary:active {
+  transform: translateY(-3px) scale(1.02);
+}
+
+.footer .btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s;
+}
+
+.footer .btn-primary:hover::before {
+  left: 100%;
+}
+
+.footer .btn-primary span,
+.footer .btn-primary emoji {
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+  font-size: 1.15em;
+  transition: all 0.3s ease;
+}
+
+.footer .btn-primary:hover span,
+.footer .btn-primary:hover emoji {
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 1));
+  transform: scale(1.1);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .footer .btn-primary {
+    padding: 12px 24px;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    min-height: 48px;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .footer .btn-primary:hover {
+    transform: translateY(-4px) scale(1.05);
+  }
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+

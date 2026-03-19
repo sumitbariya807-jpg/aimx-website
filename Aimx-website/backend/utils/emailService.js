@@ -30,6 +30,17 @@ const sendRegistrationEmail = async (participant) => {
 
   const from = process.env.MAIL_FROM || process.env.SMTP_USER;
   const adminEmail = process.env.ADMIN_EMAIL || process.env.MAIL_FROM || process.env.SMTP_USER;
+
+  let qrImage = '';
+  try {
+    const qrData = participant.participantId;
+    qrImage = await QRCode.toDataURL(qrData);
+    console.log(`✅ QR generated for ${participant.participantId}`);
+  } catch (err) {
+    console.error('QR generation error in registration email:', err.message);
+    qrImage = '';
+  }
+
   const html = `
     <h2>AIMX 2026 Event Notification</h2>
     <p>Hello ${participant.name},</p>
@@ -42,6 +53,16 @@ const sendRegistrationEmail = async (participant) => {
     ${participant.teamName ? `<p><strong>Team Name:</strong> ${participant.teamName}</p>` : ''}
     ${participant.teamMembers && participant.teamMembers.length > 1 ? 
       '<h3>Team Members:</h3>' + participant.teamMembers.map((member, i) => `<p>Member ${i+1}: ${member.name} (${member.email})</p>`).join('') : ''}
+    
+    ${qrImage ? `
+      <div style="text-align: center; margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 10px; border: 2px solid #007bff;">
+        <h3 style="color: #007bff;">🎫 Your Registration QR Ticket</h3>
+        <img src="${qrImage}" width="220" height="220" alt="AIMX 2026 QR Ticket" style="border: 2px solid #007bff; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/>
+        <p style="font-size: 14px; color: #495057; margin-top: 15px; font-weight: 500;">Show this QR at event entry (after admin approval).</p>
+        <p style="font-size: 13px; color: #6c757d;">Pending approval? Track status in email updates.</p>
+      </div>
+    ` : '<p>QR ticket coming soon after verification!</p>'}
+    
     <p>Thank you for participating in AIMX 2026.</p>
     <p>AIMX Team</p>
   `;
@@ -51,10 +72,11 @@ const sendRegistrationEmail = async (participant) => {
     to: participant.email,
     cc: adminEmail,
     subject: `AIMX 2026 Update - ${participant.participantId}`,
-    html
+    html,
+    headers: { 'Content-Type': 'text/html; charset=utf-8' }
   });
 
-  console.log(`✅ Registration email sent to ${participant.email} (admin copy: ${adminEmail})`);
+  console.log(`✅ Registration email sent to ${participant.email} (admin copy: ${adminEmail}) ${qrImage ? 'with QR' : '(no QR)'}`);
   return true;
 };
 

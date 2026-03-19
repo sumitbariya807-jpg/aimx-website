@@ -1,8 +1,10 @@
 // AIMX Backend API Client
 
-const BASE_URL = "https://aimx-website.onrender.com/api";
-console.log('API_BASE:', BASE_URL);
-console.log("FINAL API:", BASE_URL);
+const isLocal = import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const BASE_URL = isLocal 
+  ? 'http://localhost:5000/api' 
+  : 'https://aimx-website.onrender.com/api';
+console.log('API_BASE:', BASE_URL, isLocal ? '(LOCAL)' : '(PROD)');
 
 const API_DELAY = 300;
 
@@ -35,6 +37,7 @@ export const adminLogin = async (email, password) => {
   if (data?.token) localStorage.setItem('adminToken', data.token);
   return data;
 };
+
 export const adminLogout = () => {
   localStorage.removeItem('adminToken');
 };
