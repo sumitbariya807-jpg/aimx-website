@@ -11,5 +11,8 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  define: {
+    'import.meta.env.VITE_API_URL': JSON.stringify('https://aimx-website-1.onrender.com')
   }
 })

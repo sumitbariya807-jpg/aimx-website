@@ -1,6 +1,8 @@
 // AIMX Backend API Client
 
-const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
+const BASE_URL = "https://aimx-website-1.onrender.com/api";
+console.log("FINAL API:", BASE_URL);
+
 const API_DELAY = 300;
 
 const withDelay = async () => {

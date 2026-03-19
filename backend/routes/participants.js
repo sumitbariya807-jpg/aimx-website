@@ -15,9 +15,7 @@ router.post('/admin/login', async (req, res) => {
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password required' });
     }
-  const email = username.toLowerCase() === "admin"
-  ? "admin@aimx.com"
-  : username.trim().toLowerCase();
+  const email = username.trim().toLowerCase();
     const organizer = await Organizer.findOne({ email });
     if (!organizer || !(await organizer.comparePassword(password))) {
       return res.status(401).json({ error: 'Invalid credentials' });
