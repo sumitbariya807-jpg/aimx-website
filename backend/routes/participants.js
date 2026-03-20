@@ -6,35 +6,10 @@ const Organizer = require('../models/Organizer');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'aimx-jwt-secret-2026';
 const { verifyOrganizer } = require('../utils/adminAuth');
-const { sendRegistrationEmail, sendStatusEmail } = require('../utils/emailService');
+const { sendRegistrationEmail, sendStatusEmail } = require('../utils/emailService-fixed.js');
 const { getNextId } = require('../utils/counter');
 
-router.post('/admin/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password required' });
-    }
-  const email = username.trim().toLowerCase();
-    const organizer = await Organizer.findOne({ email });
-    if (!organizer || !(await organizer.comparePassword(password))) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    const token = jwt.sign(
-      { organizer: { id: organizer._id, email: organizer.email, name: organizer.name } }, 
-      JWT_SECRET
-    );
-    res.json({ 
-      success: true,
-      token, 
-      organizer: { id: organizer._id, email: organizer.email, name: organizer.name } 
-    });
-  } catch (error) {
-    console.error('Admin login error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
+// Registration - no auth required
 router.post('/register', async (req, res) => {
   try {
     const data = req.body;
@@ -77,7 +52,8 @@ router.post('/register', async (req, res) => {
   }
 });
 
-router.get('/', verifyOrganizer, async (req, res) => {
+// Admin routes - auth required
+router.get('/list', verifyOrganizer, async (req, res) => {
   try {
     const participants = await Participant.find().sort({ createdAt: -1 });
     res.json(participants);
@@ -121,6 +97,7 @@ router.get('/export/excel', verifyOrganizer, async (req, res) => {
   }
 });
 
+// Public verification
 router.get('/verify/:registrationId', async (req, res) => {
   try {
     const participant = await Participant.findOne({ participantId: req.params.registrationId });
@@ -148,6 +125,7 @@ router.get('/:participantId', async (req, res) => {
   }
 });
 
+// Admin status update
 router.patch('/:participantId/status', verifyOrganizer, async (req, res) => {
   try {
     const { status } = req.body;
@@ -187,6 +165,7 @@ router.delete('/:participantId', verifyOrganizer, async (req, res) => {
   }
 });
 
+// Check-in routes
 router.post('/checkin/:registrationId', async (req, res) => {
   try {
     const registrationId = req.params.registrationId;
@@ -232,7 +211,7 @@ router.post('/checkin/:registrationId', async (req, res) => {
   }
 });
 
-// Legacy QR scanner endpoint (keep for existing frontend)
+// Legacy QR scanner
 router.post('/checkin', async (req, res) => {
   try {
     const { qrData } = req.body;
@@ -281,4 +260,3 @@ router.post('/checkin', async (req, res) => {
 });
 
 module.exports = router;
-
