@@ -6,7 +6,7 @@ const Organizer = require('../models/Organizer');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'aimx-jwt-secret-2026';
 const { verifyOrganizer } = require('../utils/adminAuth');
-require('../utils/emailService')
+const { sendRegistrationEmail, sendStatusEmail } = require('../utils/emailService');
 const { getNextId } = require('../utils/counter');
 
 // Registration - no auth required
