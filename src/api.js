@@ -27,7 +27,7 @@ export const adminLogin = async (email, password) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       username: email,
-      password
+      password: password
     })
   });
 
@@ -140,3 +140,4 @@ export const downloadParticipantsExcel = async () => {
 export const generateMockData = () => {
   console.log('Backend API active - no mock needed');
 };
+

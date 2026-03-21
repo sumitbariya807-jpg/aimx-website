@@ -70,8 +70,7 @@ function SuccessPage() {
     <section className="section" style={{paddingTop: '120px'}}>
       <ScrollReveal>
         <div className="success-card ticket-card">
-<div className="ticket-header">🎫 AIMX 2026 Entry Ticket</div>
-
+          <h2>🎫 Event Ticket</h2>
           <div className="participant-id">{participant.participantId}</div>
           <div className="ticket-details">
             <p><strong>{participant.name}</strong></p>
@@ -955,8 +954,8 @@ setFormData(prev => ({...prev, event: eventId.toString(), eventName: event.name,
                     >
                       <option value="">Select Event</option>
                       {filteredEvents.map((event) => (
-                        <option key={event.id} value={event.id}>
-                          `[${event.category}] ${event.name} - ${event.feeText}`
+<option key={event.id} value={event.id}>
+                          {`[${event.category}] ${event.name} - ${event.feeText}`}
                         </option>
                       ))}
                     </select>
@@ -1339,13 +1338,16 @@ function AdminDashboard() {
   const [participants, setParticipants] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const navigate = useNavigate()
 
   const loadParticipants = async () => {
     try {
       const data = await getRegistrations()
       setParticipants(data)
-    } catch {
+      setError('')
+    } catch (err) {
       setError('Failed to load participants. Please login again.')
     } finally {
       setLoading(false)
@@ -1383,16 +1385,51 @@ function AdminDashboard() {
     return acc
   }, {pending: 0, approved: 0, rejected: 0, total: 0})
 
-  if (loading) return <section className="section admin-panel-section" style={{paddingTop: '120px'}}><p>Loading admin panel...</p></section>
+  // Filter participants
+  const filteredParticipants = participants.filter(p => {
+    const matchesSearch = !searchTerm || 
+      p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.participantId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.eventName?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesStatus = !statusFilter || p.status === statusFilter
+    
+    return matchesSearch && matchesStatus
+  })
+
+  if (loading) return (
+    <section className="section admin-panel-section" style={{paddingTop: '120px'}}>
+      <div className="admin-loading">
+        <div className="loader-ring"></div>
+        <p>Loading participants data...</p>
+      </div>
+    </section>
+  );
 
   return (
-<section className="section admin-panel-section" style={{paddingTop: '120px'}}>
+    <section className="section admin-panel-section" style={{paddingTop: '120px'}}>
       <ScrollReveal>
-        <h1 className="section-title admin-header">Admin Panel</h1>
+        <div className="admin-header-container">
+          <h1 className="section-title admin-header">Admin Control Panel</h1>
+          <div className="admin-controls">
+            <button className="btn btn-primary" onClick={downloadParticipantsExcel}>
+              📊 Download Excel
+            </button>
+            <button className="btn btn-neon" onClick={handleAdminLogout}>
+              🚪 Logout
+            </button>
+            <button className="btn btn-secondary" onClick={loadParticipants}>
+              🔄 Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
         <div className="admin-stats-grid">
           <div className="stat-card admin-stat pending">
             <div className="stat-number">{stats.pending}</div>
-            <div className="stat-label">Pending</div>
+            <div className="stat-label">Pending Review</div>
           </div>
           <div className="stat-card admin-stat approved">
             <div className="stat-number">{stats.approved}</div>
@@ -1404,49 +1441,135 @@ function AdminDashboard() {
           </div>
           <div className="stat-card admin-stat total">
             <div className="stat-number">{stats.total}</div>
-            <div className="stat-label">Total</div>
+            <div className="stat-label">Total Registrations</div>
           </div>
         </div>
 
-        {error && <p style={{ color: '#ff8080', marginBottom: '12px' }}>{error}</p>}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <button className="btn btn-primary" onClick={downloadParticipantsExcel}>Download Excel</button>
-          <button className="btn btn-neon" onClick={handleAdminLogout}>Logout</button>
-        </div>
-        <div className="events-grid">
-          {participants.map((p) => (
-            <div className="mission-card" key={p.participantId}>
-              <div className="mission-card-body">
-                <h3 className="mission-title">{p.name}</h3>
-                <p className="mission-subtitle">{p.participantId}</p>
-                <p>📧 {p.email}</p>
-                <p>📱 {p.phone}</p>
-                <p>🎯 {p.eventName} - {p.eventSubname}</p>
-                <p>💰 ₹{p.amount}</p>
-                <p>Status: <strong>{p.status.toUpperCase()}</strong></p>
-                {p.screenshot && <a className="mission-register-btn" href={p.screenshot} download={`txn-${p.participantId}.png`}>Download Screenshot</a>}
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
-                  <button className="btn btn-primary" onClick={() => handleStatus(p.participantId, 'approved')}>Approve</button>
-                  <button className="btn btn-neon" onClick={() => handleStatus(p.participantId, 'rejected')}>Reject</button>
-                  <button className="btn" style={{background: '#dc3545', borderColor: '#dc3545', color: 'white'}} onClick={async () => {
-                    if (confirm(`Delete ${p.name} (${p.participantId})?`)) {
-                      try {
-                        await deleteRegistration(p.participantId);
-                        await loadParticipants();
-                      } catch {
-                        alert('Delete failed');
-                      }
-                    }
-                  }}>🗑️ Delete</button>
-                </div>
+        {error && (
+          <div className="admin-error" style={{background: 'rgba(220,53,69,0.15)', border: '1px solid #dc3545', color: '#ff8080', padding: '16px 24px', borderRadius: '12px', marginBottom: '24px'}}>
+            ⚠️ {error}
+          </div>
+        )}
 
-              </div>
-            </div>
-          ))}
+        {/* Search & Filter */}
+        <div className="admin-table-controls">
+          <div className="admin-search">
+            <input 
+              type="text" 
+              placeholder="🔍 Search by name, email, ID or event..." 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="admin-search-input"
+            />
+          </div>
+          <div className="admin-filters">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="admin-filter-select">
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
         </div>
+
+        {/* Participants Table */}
+        <div className="admin-table-container">
+          {filteredParticipants.length === 0 ? (
+            <div className="admin-empty-state">
+              <div className="empty-icon">📋</div>
+              <h3>No Participants {searchTerm || statusFilter ? 'matching your filter' : 'yet'}</h3>
+              <p>{searchTerm || statusFilter ? 'Try adjusting your search or filter' : 'Registrations will appear here once users sign up'}</p>
+            </div>
+          ) : (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Contact</th>
+                  <th>Event</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredParticipants.map((p) => (
+                  <tr key={p.participantId} className={`table-row ${p.status}`}>
+                    <td className="id-cell">{p.participantId}</td>
+                    <td className="name-cell">
+                      <div>{p.name}</div>
+                      <small>{p.email}</small>
+                    </td>
+                    <td className="contact-cell">{p.phone}</td>
+                    <td className="event-cell">
+                      {p.eventName}
+                      {p.eventSubname && <small>- {p.eventSubname}</small>}
+                    </td>
+                    <td className="amount-cell">₹{p.amount || 0}</td>
+                    <td className="date-cell">{p.date || 'N/A'}</td>
+                    <td className="status-cell">
+                      <span className={`status-badge status-${p.status || 'pending'}`}>
+                        {p.status?.toUpperCase() || 'PENDING'}
+                      </span>
+                    </td>
+                    <td className="actions-cell">
+                      <div className="action-buttons">
+                        {p.screenshot && (
+                          <a href={p.screenshot} download={`txn-${p.participantId}.png`} className="action-btn screenshot-btn" title="Screenshot">
+                            📸
+                          </a>
+                        )}
+                        <button 
+                          className="action-btn approve-btn" 
+                          onClick={() => handleStatus(p.participantId, 'approved')}
+                          disabled={p.status === 'approved'}
+                          title="Approve"
+                        >
+                          ✅
+                        </button>
+                        <button 
+                          className="action-btn reject-btn" 
+                          onClick={() => handleStatus(p.participantId, 'rejected')}
+                          disabled={p.status === 'rejected'}
+                          title="Reject"
+                        >
+                          ❌
+                        </button>
+                        <button 
+                          className="action-btn delete-btn" 
+                          onClick={async () => {
+                            if (confirm(`Delete ${p.name} (${p.participantId})?`)) {
+                              try {
+                                await deleteRegistration(p.participantId);
+                                await loadParticipants();
+                              } catch {
+                                alert('Delete failed');
+                              }
+                            }
+                          }}
+                          title="Delete"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {filteredParticipants.length > 0 && (
+          <div className="admin-table-footer">
+            <p>Showing {filteredParticipants.length} of {participants.length} participants</p>
+          </div>
+        )}
       </ScrollReveal>
     </section>
-  )
+  );
 }
 
 function App() {

@@ -6,10 +6,12 @@ const Organizer = require('../models/Organizer');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'aimx-jwt-secret-2026';
 const { verifyOrganizer } = require('../utils/adminAuth');
-const { sendRegistrationEmail, sendStatusEmail } = require('../utils/emailService-fixed');
+const { sendRegistrationEmail, sendStatusEmail } = require('../utils/emailService');
 const { getNextId } = require('../utils/counter');
 
-// Registration - no auth required
+// REMOVED: admin login route - moved to organizers.js (Step 2 complete)
+// router.post('/participants/admin/login', ...);
+
 router.post('/register', async (req, res) => {
   try {
     const data = req.body;
@@ -52,7 +54,6 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Admin routes - auth required
 router.get('/list', verifyOrganizer, async (req, res) => {
   try {
     const participants = await Participant.find().sort({ createdAt: -1 });
@@ -97,7 +98,6 @@ router.get('/export/excel', verifyOrganizer, async (req, res) => {
   }
 });
 
-// Public verification
 router.get('/verify/:registrationId', async (req, res) => {
   try {
     const participant = await Participant.findOne({ participantId: req.params.registrationId });
@@ -125,7 +125,6 @@ router.get('/:participantId', async (req, res) => {
   }
 });
 
-// Admin status update
 router.patch('/:participantId/status', verifyOrganizer, async (req, res) => {
   try {
     const { status } = req.body;
@@ -165,7 +164,6 @@ router.delete('/:participantId', verifyOrganizer, async (req, res) => {
   }
 });
 
-// Check-in routes
 router.post('/checkin/:registrationId', async (req, res) => {
   try {
     const registrationId = req.params.registrationId;
@@ -211,7 +209,7 @@ router.post('/checkin/:registrationId', async (req, res) => {
   }
 });
 
-// Legacy QR scanner
+// Legacy QR scanner endpoint (keep for existing frontend)
 router.post('/checkin', async (req, res) => {
   try {
     const { qrData } = req.body;
@@ -260,3 +258,4 @@ router.post('/checkin', async (req, res) => {
 });
 
 module.exports = router;
+
