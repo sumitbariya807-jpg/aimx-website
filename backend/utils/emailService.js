@@ -1,214 +1,129 @@
-const nodemailer = require('nodemailer');
+// ✅ CLEAN Resend Migration - Gmail QR CID Fixed
+const { Resend } = require('resend');
 const QRCode = require('qrcode');
 
-const createTransporter = () => {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const from = process.env.MAIL_FROM;
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-  console.log('📧 SMTP Config:', {
-    host: host ? `${host}:${port}` : 'MISSING',
-    user: user ? `${user.split('@')[0]}@***.com` : 'MISSING',
-    hasPass: !!pass,
-    mailFrom: from || 'unset',
-    adminEmail: process.env.ADMIN_EMAIL || 'unset'
-  });
-
-  if (!host || !user || !pass) {
-    console.error('❌ SMTP missing required env vars - emails DISABLED');
-    return null;
-  }
-
-  const transporter = nodemailer.createTransporter({
-    host,
-    port,
-    secure: port === 465,
-    auth: { 
-      user, 
-      pass 
-    },
-    // Render timeout optimizations
-    connectionTimeout: 60000,  // 60s cold start tolerance
-    greetingTimeout: 30000,    // SMTP greeting
-    socketTimeout: 60000,      // Keep-alive
-    // Connection pooling for multiple emails
-    pool: true,
-    maxConnections: 5,
-    maxMessages: 100,
-    // Rate limiting
-    rateDelta: 10000,  // 10s window
-    rateLimit: 10,     // 10 emails/10s
-    // Debug (Render logs show if dev env)
-    logger: process.env.NODE_ENV === 'development',
-    debug: process.env.NODE_ENV === 'development'
-  });
-
-  // Async connection test (non-blocking)
-  transporter.verify((error, success) => {
-    if (error) {
-      console.error('⚠️ SMTP verify FAILED:', error.code || error.message);
-    } else {
-      console.log('✅ SMTP ready - Gmail/587 verified');
-    }
-  });
-
-  return transporter;
-};
-
-// Retry wrapper for Render flakiness
-const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 3) => {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`📤 Email attempt ${attempt}/${maxRetries} to ${mailOptions.to}`);
-      await transporter.sendMail(mailOptions);
-      return true;
-    } catch (error) {
-      console.error(`❌ Email attempt ${attempt} FAILED:`, {
-        to: mailOptions.to,
-        code: error.code,
-        message: error.message,
-        response: error.responseCode || 'no-response'
-      });
-      
-      if (attempt === maxRetries) return false;
-      
-      // Wait before retry (exponential backoff)
-      await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
-    }
-  }
-};
-
+// 🎟️ Registration Email with QR CID (Gmail/Outlook compatible)
 const sendRegistrationEmail = async (participant) => {
-  const transporter = createTransporter();
-  if (!transporter) {
-    console.warn('SMTP unavailable. Registration email skipped.');
-    return false;
-  }
-
-  const from = process.env.MAIL_FROM || process.env.SMTP_USER;
-  const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'admin@aimx.com';
-
-  let qrImage = '';
   try {
-    qrImage = await QRCode.toDataURL(participant.participantId);
-    console.log(`✅ QR OK for ${participant.participantId}`);
-  } catch (err) {
-    console.error('QR error:', err.message);
-    qrImage = '';
-  }
+    console.log(`📧 Register email for ${participant.participantId} → ${participant.email}`);
 
-  const html = `
+    // Generate QR dataURL
+    const qrData = JSON.stringify({
+      id: participant.participantId,
+      name: participant.name,
+      event: participant.eventName,
+      phone: participant.phone,
+      college: participant.college
+    });
+    const qrImage = await QRCode.toDataURL(qrData);
+
+    // Base64 → Buffer for CID
+    const qrBuffer = Buffer.from(qrImage.replace(/^data:image\/png;base64,/, ''), 'base64');
+
+    // Send via Resend
+    const { data } = await resend.emails.send({
+      from: process.env.MAIL_FROM || 'AIMX Events <noreply@aimx.in>',
+      to: participant.email,
+      cc: process.env.ADMIN_EMAIL || '',
+      subject: `🎫 AIMX 2026 | Registration #${participant.participantId}`,
+      html: `
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"></head>
-<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-  <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center;">
-    <h1 style="margin: 0;">🎫 AIMX 2026 Registration</h1>
+<head>
+  <meta charset="utf-8">
+  <title>AIMX Registration</title>
+</head>
+<body style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 0;">
+  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; color: white;">
+    <h1 style="margin: 0; font-size: 28px;">🎉 Registration Confirmed</h1>
+    <p style="opacity: 0.9;">AIMX 2026 Events</p>
   </div>
-  <div style="padding: 30px; background: #f8f9fa;">
-    <p>Hello <strong>${participant.name}</strong>,</p>
-    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-      <tr><td><strong>Mobile:</strong></td><td>${participant.phone}</td></tr>
-      <tr><td><strong>College:</strong></td><td>${participant.college}</td></tr>
-      <tr><td><strong>Event:</strong></td><td>${participant.eventName} (${participant.eventId})</td></tr>
-      <tr><td><strong>ID:</strong></td><td>${participant.participantId}</td></tr>
-      <tr><td><strong>Status:</strong></td><td>${(participant.status || 'pending').toUpperCase()}</td></tr>
-      ${participant.teamName ? `<tr><td><strong>Team:</strong></td><td>${participant.teamName}</td></tr>` : ''}
-    </table>
+  
+  <div style="padding: 40px 30px; background: #fff;">
+    <h2 style="color: #333;">Hello <strong>${participant.name}</strong>!</h2>
     
-    ${qrImage ? `
-    <div style="text-align: center; background: #e8f5e8; padding: 20px; border-radius: 12px; border: 3px solid #28a745;">
-      <h3>📱 Your QR Ticket (Scan at Entry)</h3>
-      <img src="${qrImage}" style="width: 220px; height: 220px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.2);" />
-      <p style="color: #155724; font-weight: 600;">Pending? Wait for admin approval.</p>
-    </div>` : '<p style="color: orange;">QR coming after verification...</p>'}
+    <div style="background: #f8f9fa; border-radius: 12px; padding: 25px; margin: 25px 0; border-left: 5px solid #28a745;">
+      <h3>📋 Registration Details</h3>
+      <table style="width: 100%; font-size: 16px;">
+        <tr><td style="padding-right: 20px; font-weight: 600;">Event:</td><td>${participant.eventName}</td></tr>
+        <tr><td style="padding-right: 20px; font-weight: 600;">ID:</td><td><strong>${participant.participantId}</strong></td></tr>
+        <tr><td style="padding-right: 20px; font-weight: 600;">Mobile:</td><td>${participant.phone}</td></tr>
+        <tr><td style="padding-right: 20px; font-weight: 600;">College:</td><td>${participant.college}</td></tr>
+      </table>
+    </div>
+
+    <div style="text-align: center; background: #e8f5e8; padding: 30px; border-radius: 15px; margin: 30px 0; border: 3px solid #28a745;">
+      <h3 style="color: #155724; margin-top: 0;">📱 Your Entry QR Code</h3>
+      <img src="cid:qrcode" alt="QR Ticket" style="width: 220px; height: 220px; border-radius: 12px; box-shadow: 0 8px 25px rgba(40, 165, 69, 0.3);" />
+      <p style="color: #155724; font-weight: 600; margin-top: 20px;">Pending admin approval → Show at entry</p>
+    </div>
+
+    <div style="text-align: center; padding: 25px; background: #f0f8ff; border-radius: 12px; margin: 30px 0;">
+      <p style="font-size: 16px; color: #1976d2; font-weight: 500;">⏳ Status: PENDING</p>
+      <p style="font-size: 14px; color: #666;">Check AIMX dashboard or contact support</p>
+    </div>
+
+    <hr style="border: none; height: 1px; background: #eee; margin: 40px 0;" />
     
-    <hr style="border: none; height: 1px; background: #ddd; margin: 30px 0;">
-    <p style="color: #666; font-size: 14px;">AIMX 2026 Team<br><em>Events • Tech • Community</em></p>
+    <p style="text-align: center; font-size: 14px; color: #666;">
+      AIMX 2026 Team<br>
+      <a href="https://aimx.in" style="color: #667eea;">aimx.in</a> | Events • Tech • Community
+    </p>
   </div>
 </body>
-</html>`;
+</html>`,
+      attachments: [{
+        filename: 'ticket-qr.png',
+        content: qrBuffer,
+        cid: 'qrcode'
+      }]
+    });
 
-  const mailOptions = {
-    from,
-    to: participant.email,
-    cc: adminEmail,
-    subject: `AIMX 2026 | ${participant.participantId} - Registration Confirmed`,
-    html,
-    headers: { 'X-Mailer': 'AIMX-v2' }
-  };
-
-  return await sendEmailWithRetry(transporter, mailOptions, 3);
-};
-
-const sendStatusEmail = async (participant, status) => {
-  const transporter = createTransporter();
-  if (!transporter) {
-    console.warn('SMTP unavailable. Status email skipped.');
+    console.log(`✅ Registration email sent: ${participant.participantId}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Registration email failed ${participant.participantId}:`, error.message);
     return false;
   }
-
-  const from = process.env.MAIL_FROM || process.env.SMTP_USER;
-  const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'admin@aimx.com';
-  const statusLabel = status.toUpperCase();
-  const statusEmoji = status === 'approved' ? '✅' : '❌';
-  const statusText = status === 'approved' 
-    ? 'Your registration has been APPROVED! 🎉 Show QR at entry.' 
-    : 'Registration REJECTED. Contact support@aimx.com';
-
-  let qrImage = '';
-  if (status === 'approved') {
-    try {
-      qrImage = await QRCode.toDataURL(participant.participantId);
-    } catch (err) {
-      console.error('Status QR error:', err.message);
-    }
-  }
-
-  const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"></head>
-<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-  <div style="padding: 20px; background: ${status === 'approved' ? '#d4edda' : '#f8d7da'}; color: ${status === 'approved' ? '#155724' : '#721c24'}; text-align: center;">
-    <h1>${statusEmoji} ${statusLabel} Update</h1>
-  </div>
-  <div style="padding: 30px; background: #f8f9fa;">
-    <p>Hello <strong>${participant.name}</strong>,</p>
-    <p style="font-size: 18px; font-weight: bold; color: ${status === 'approved' ? '#28a745' : '#dc3545'};">
-      ${statusText}
-    </p>
-    <table style="width: 100%; border-collapse: collapse;">
-      <tr><td><strong>Event:</strong></td><td>${participant.eventName}</td></tr>
-      <tr><td><strong>ID:</strong></td><td>${participant.participantId}</td></tr>
-      ${participant.teamName ? `<tr><td><strong>Team:</strong></td><td>${participant.teamName}</td></tr>` : ''}
-    </table>
-    
-    ${qrImage ? `
-    <div style="text-align: center; margin: 30px 0; padding: 25px; background: #d4edda; border-radius: 15px; border: 4px solid #28a745;">
-      <h3>✅ Entry QR Code</h3>
-      <img src="${qrImage}" style="width: 240px; height: 240px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);" />
-      <p style="color: #155724; font-weight: 600; margin-top: 15px;">Event staff will scan this</p>
-    </div>` : ''}
-    
-    <p style="color: #666;">AIMX Team | support@aimx.com</p>
-  </div>
-</body>
-</html>`;
-
-  const mailOptions = {
-    from,
-    to: participant.email,
-    cc: adminEmail,
-    subject: `AIMX 2026 | ${participant.participantId} - ${statusLabel}`,
-    html,
-    headers: { 'X-Mailer': 'AIMX-v2' }
-  };
-
-  return await sendEmailWithRetry(transporter, mailOptions, 3);
 };
 
-module.exports = { sendRegistrationEmail, sendStatusEmail };
+// Status notification
+const sendStatusEmail = async (participant, status) => {
+  try {
+    const statusConfig = {
+      approved: { emoji: '✅', color: '#d4edda', textColor: '#155724', subject: 'APPROVED' },
+      rejected: { emoji: '❌', color: '#f8d7da', textColor: '#721c24', subject: 'REJECTED' }
+    };
+    const config = statusConfig[status] || statusConfig.approved;
+
+    await resend.emails.send({
+      from: process.env.MAIL_FROM,
+      to: participant.email,
+      cc: process.env.ADMIN_EMAIL || '',
+      subject: `AIMX ${config.subject} | ${participant.participantId}`,
+      html: `
+<div style="font-family: Arial; max-width: 600px; margin: 0 auto;">
+  <div style="background: ${config.color}; padding: 30px; text-align: center;">
+    <h1 style="color: ${config.textColor}; margin: 0;">${config.emoji} ${status.toUpperCase()}</h1>
+  </div>
+  <div style="padding: 30px;">
+    <p>Hello <strong>${participant.name}</strong>,</p>
+    <p>Your <strong>${participant.eventName}</strong> registration is now <strong style="color: ${config.textColor};">${status.toUpperCase()}</strong>.</p>
+    <p style="font-weight: 600;">ID: ${participant.participantId}</p>
+  </div>
+</div>`
+    });
+
+    console.log(`✅ Status email ${status}: ${participant.participantId}`);
+  } catch (error) {
+    console.error(`❌ Status email failed ${participant.participantId}:`, error.message);
+  }
+};
+
+module.exports = {
+  sendRegistrationEmail,
+  sendStatusEmail
+};
 

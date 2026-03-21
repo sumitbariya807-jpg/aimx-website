@@ -10,14 +10,19 @@ const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb+s
 
 app.use(cors({
   origin: [
+    'http://localhost:5173',
     'https://aimx-website-gilt.vercel.app',
-    'http://localhost:5173'
+    'https://aimx.online',
+    'https://www.aimx.online'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'OPTIONS', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-console.log('✅ CORS configured for:', ['https://aimx-website-gilt.vercel.app', 'http://localhost:5173']);
+
+app.options('*', cors());
+
+console.log('✅ CORS configured for:', ['http://localhost:5173', 'https://aimx-website-gilt.vercel.app', 'https://aimx.online', 'https://www.aimx.online']);
 console.log('✅ CORS configured for production (Render)');
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));

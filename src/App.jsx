@@ -70,7 +70,8 @@ function SuccessPage() {
     <section className="section" style={{paddingTop: '120px'}}>
       <ScrollReveal>
         <div className="success-card ticket-card">
-          <h2>🎫 Event Ticket</h2>
+<div className="ticket-header">🎫 AIMX 2026 Entry Ticket</div>
+
           <div className="participant-id">{participant.participantId}</div>
           <div className="ticket-details">
             <p><strong>{participant.name}</strong></p>
