@@ -1193,11 +1193,12 @@ function Login() {
     setError('')
     setLoading(true)
     try {
-      await adminLogin(username, password)
+      const data = await adminLogin(username, password)
       localStorage.setItem('adminAuth', 'true')
       navigate('/admin')
-    } catch {
-      setError('Invalid admin credentials!')
+    } catch (err) {
+      console.error('Admin login failed:', err)
+      setError(err.message || 'Invalid admin credentials!')
     } finally {
       setLoading(false)
     }
@@ -1428,6 +1429,7 @@ function AdminDashboard() {
   const handleAdminLogout = () => {
     localStorage.removeItem('adminAuth')
     adminLogout()
+    localStorage.removeItem('adminToken')
     navigate('/login')
   }
 
