@@ -107,9 +107,22 @@ router.get('/export/excel', verifyOrganizer, async (req, res) => {
 
 router.get('/verify/:registrationId', async (req, res) => {
   try {
-    const participant = await Participant.findOne({ participantId: req.params.registrationId });
-    if (!participant) return res.status(404).json({ error: 'Participant not found' });
+    const id = req.params.registrationId;
+    console.log('🔍 QR Scan /verify:', id);
     
+    const participant = await Participant.findOne({
+      $or: [
+        { participantId: id },
+        { participantId: { $regex: id, $options: 'i' } }
+      ]
+    });
+    
+    if (!participant) {
+      console.log('❌ No participant found for:', id);
+      return res.status(404).json({ error: 'Participant not found' });
+    }
+    
+    console.log('✅ Found:', participant.participantId);
     res.json({
       name: participant.name,
       event: participant.eventName,
@@ -118,6 +131,7 @@ router.get('/verify/:registrationId', async (req, res) => {
       checkInStatus: participant.checkedIn
     });
   } catch (error) {
+    console.error('Verify error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -178,15 +192,23 @@ router.delete('/:participantId', verifyOrganizer, async (req, res) => {
 router.post('/checkin/:registrationId', async (req, res) => {
   try {
     const registrationId = req.params.registrationId;
-    const participant = await Participant.findOne({ participantId: registrationId });
+    console.log('🔍 QR Checkin:', registrationId);
+    
+    const participant = await Participant.findOne({
+      $or: [
+        { participantId: registrationId },
+        { participantId: { $regex: registrationId, $options: 'i' } }
+      ]
+    });
     
     if (!participant) {
+      console.log('❌ Checkin failed - no participant:', registrationId);
       return res.status(404).json({ error: 'Participant not found' });
     }
     
     if (participant.checkedIn) {
       return res.status(400).json({ 
-        error: 'Participant already checked in.',
+        error: 'Already checked in.',
         participant: {
           name: participant.name,
           event: participant.eventName,
@@ -198,11 +220,12 @@ router.post('/checkin/:registrationId', async (req, res) => {
     }
     
     const updated = await Participant.findOneAndUpdate(
-      { participantId: registrationId },
+      { _id: participant._id },
       { checkedIn: true },
       { new: true }
     );
     
+    console.log('✅ Checkin complete:', updated.participantId);
     res.json({
       success: true,
       message: 'Checked in successfully!',
