@@ -14,6 +14,10 @@ const withDelay = async () => {
 
 const getAdminHeaders = () => {
   const token = localStorage.getItem('adminToken');
+  console.log('🔑 Admin API token:', token ? `${token.slice(0, 20)}...${token.slice(-10)}` : '❌ MISSING');
+  if (!token) {
+    console.warn('🚨 No adminToken in localStorage - API will fail auth');
+  }
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -58,7 +62,15 @@ export const getRegistrations = async () => {
   const response = await fetch(`${BASE_URL}/participants/list`, {
     headers: getAdminHeaders()
   });
-  if (!response.ok) throw new Error(await response.text() || 'Fetch failed');
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('🚨 Participants/list failed:', response.status, errorText);
+    if (response.status === 401) {
+      localStorage.removeItem('adminToken');
+      throw new Error('Auth failed - logged out. Please login again. (401)');
+    }
+    throw new Error(`API failed: ${response.status} - ${errorText}`);
+  }
   const data = await response.json();
   return Array.isArray(data) ? data : [];
 };
@@ -78,7 +90,11 @@ export const updateRegistrationStatus = async (participantId, newStatus) => {
     headers: getAdminHeaders(),
     body: JSON.stringify({ status: newStatus })
   });
-  if (!response.ok) throw new Error(await response.text() || 'Update failed');
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('🚨 Status update failed:', response.status, errorText);
+    throw new Error(`Update failed: ${response.status} - ${errorText}`);
+  }
   return response.json();
 };
 

@@ -1399,22 +1399,34 @@ function AdminDashboard() {
 
   const loadParticipants = async () => {
     try {
+      console.log('📋 Loading participants...');
       const data = await getRegistrations()
+      console.log(`✅ Loaded ${data.length} participants`);
       setParticipants(data)
       setError('')
     } catch (err) {
-      setError('Failed to load participants. Please login again.')
+      console.error('💥 Load participants ERROR:', err.message);
+      setError(`Failed to load participants: ${err.message}. Check console & Network tab.`);
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    if (!localStorage.getItem('adminAuth')) {
-      navigate('/login')
-      return
+    const token = localStorage.getItem('adminToken');
+    const adminAuth = localStorage.getItem('adminAuth');
+    
+    console.log('🔐 AdminDashboard mount - token:', token ? 'PRESENT' : 'MISSING', 'adminAuth:', adminAuth);
+    
+    if (!adminAuth || !token) {
+      console.warn('🚨 No auth - redirect to login');
+      localStorage.removeItem('adminAuth');
+      localStorage.removeItem('adminToken');
+      navigate('/login');
+      return;
     }
-    loadParticipants()
+    
+    loadParticipants();
   }, [navigate])
 
   const handleStatus = async (participantId, status) => {
@@ -1478,6 +1490,14 @@ function AdminDashboard() {
           <button className="btn btn-secondary" onClick={loadParticipants}>
             🔄 Refresh
           </button>
+          <button className="btn btn-info debug-btn" onClick={() => {
+            const token = localStorage.getItem('adminToken');
+            const adminAuth = localStorage.getItem('adminAuth');
+            console.log('🛠 DEBUG:', { token: token ? `${token.slice(0,20)}...` : null, adminAuth, BASE_URL: BASE_URL });
+            alert(`Token: ${token ? 'OK' : 'MISSING'}\nadminAuth: ${adminAuth || 'MISSING'}\nCheck Console/Network tab`);
+          }}>
+            🛠 Debug Token
+          </button>
           <button className="btn btn-success admin-scanner-btn" onClick={() => navigate('/admin-scanner')} title="Full participant details on scan">
             🔍 Entry Scanner
           </button>
@@ -1504,9 +1524,10 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {error && (
+{error && (
           <div className="admin-error" style={{background: 'rgba(220,53,69,0.15)', border: '1px solid #dc3545', color: '#ff8080', padding: '16px 24px', borderRadius: '12px', marginBottom: '24px'}}>
             ⚠️ {error}
+            <br /><small>💡 Click "Debug Token" button & check Console/Network tab (F12)</small>
           </div>
         )}
 
