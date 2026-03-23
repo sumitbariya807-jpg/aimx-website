@@ -125,10 +125,20 @@ router.get('/verify/:registrationId', async (req, res) => {
     console.log('✅ Found:', participant.participantId);
     res.json({
       name: participant.name,
+      email: participant.email,
+      phone: participant.phone,
+      college: participant.college,
       event: participant.eventName,
+      eventId: participant.eventId,
       registrationId: participant.participantId,
+      teamName: participant.teamName,
+      amount: participant.amount,
+      transactionId: participant.transactionId,
+      status: participant.status,
       paymentStatus: participant.status === 'approved' ? 'Approved' : 'Pending',
-      checkInStatus: participant.checkedIn
+      checkInStatus: participant.checkedIn,
+      date: participant.date,
+      upiRef: participant.upiRef
     });
   } catch (error) {
     console.error('Verify error:', error);

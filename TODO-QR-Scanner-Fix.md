@@ -4,7 +4,7 @@ Status: 🔄 In Progress
 ## Steps:
 - [x] 1. Plan approved & TODO created
 - [x] 2. Update /verify/:registrationId & /checkin/:registrationId for partial ID regex
-- [ ] 3. Test scanner with partial hex (e.g. "642BB3")
+- [x] 3. Test scanner with partial hex (e.g. "642BB3")
 - [ ] 4. Deploy & verify production
 - [x] Complete ✅
 

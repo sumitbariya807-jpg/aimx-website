@@ -320,7 +320,7 @@ const eventsData = [
   { id: 3, name: 'Debugging', category: 'Technical', price: 50, teamSize: 1, feeText: '₹50, 1 member', icon: '🐛', badgeColor: 'bg-gradient-to-r from-blue-500 to-purple-600', startTime: '12:00 PM', endTime: '1:30 PM', location: 'Tech Lab', head: {name: 'Prathamesh', phone: '8356050992'} },
 
 // Cultural
-{ id: 4, name: 'Dance', category: 'Cultural', price: 400, teamSize: 6, feeText: '₹400, 3–6 members', icon: '💃', badgeColor: 'bg-gradient-to-r from-pink-500 to-rose-500', startTime: '6:00 PM', endTime: '7:30 PM', location: 'Main Stage', head: {name: 'Tanisha', phone: '7208577313'} },
+{ id: 4, name: 'Dance', category: 'Cultural', price: 400, teamSize: 6, feeText: '₹400, 3–6 members', icon: '💃', badgeColor: 'bg-gradient-to-r from-pink-500 to-rose-500', startTime: '6:00 PM', endTime: '7:30 PM', location: 'Main Stage', head: {name: 'Darshika', phone: '9321488036'} },
 { id: 5, name: 'Ramp Walk', category: 'Cultural', price: 100, teamSize: 1, feeText: '₹100, 1 member', icon: '👗', badgeColor: 'bg-gradient-to-r from-pink-500 to-rose-500', startTime: '5:00 PM', endTime: '6:00 PM', location: 'Stage', head: {name: 'Vaishnavi', phone: '8928002367'} },
 { id: 6, name: 'Singing', category: 'Cultural', price: 100, teamSize: 1, feeText: '₹100, 1 member', icon: '🎤', badgeColor: 'bg-gradient-to-r from-pink-500 to-rose-500', startTime: '4:00 PM', endTime: '5:00 PM', location: 'Auditorium', head: {name: 'Krisha', phone: '9429659108'} },
 // E-Sports
@@ -329,7 +329,7 @@ const eventsData = [
 { id: 8, name: 'Workshop', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '📚', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '11:00 AM', endTime: '12:00 PM', location: 'Workshop Room', head: {name: 'Maruf', phone: '9040286664'} },
 { id: 9, name: 'Guest Session', subname: 'events head Garima', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '👥', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '9:00 AM', endTime: '1:00 PM', location: 'Main Hall', head: {name: 'Garima', phone: '9356063809'} },
 { id: 10, name: 'Panel Discussion', category: 'AIMX Talks', price: 0, teamSize: 1, feeText: 'FREE, 1 participant', icon: '💬', badgeColor: 'bg-gradient-to-r from-indigo-500 to-violet-500', startTime: '9:00 AM', endTime: '1:00 PM', location: 'Main Hall', head: {name: 'Prashant', phone: '7208503692'} },
-{ id: 11, name: 'Stumble', category: 'E-Sports', price: 30, teamSize: 1, feeText: '₹30, 1 member', icon: '🎮', badgeColor: 'bg-gradient-to-r from-emerald-500 to-teal-500', startTime: '1:00 PM', endTime: '2:30 PM', location: 'Gaming Zone', head: {name: 'Zaid', phone: '9324649291'} }
+{ id: 11, name: 'Stumble Guys', category: 'E-Sports', price: 30, teamSize: 1, feeText: '₹30, 1 member', icon: '🎮', badgeColor: 'bg-gradient-to-r from-emerald-500 to-teal-500', startTime: '1:00 PM', endTime: '2:30 PM', location: 'Gaming Zone', head: {name: 'Zaid', phone: '9324649291'} }
   ]
 
 // eventPrices no longer needed - use event.price
@@ -404,7 +404,7 @@ function Footer() {
         </div>
         <div className="footer-section">
           <h3>Contact</h3>
-          <p>📍 Aditya Institute of Management Studies and Research</p>
+          <p>📍 Aditya Institute of Management Studies and Research | Borivali West</p>
           <p>📞 +91 8104834173 Prince</p>
           <p>✉️ infoaimx2026@gmail.com</p>
           <button className="btn btn-primary" onClick={() => window.location.href = 'mailto:infoaimx2026@gmail.com?subject=AIMX 2026 Event Query'}>💬 Ask Query</button>
