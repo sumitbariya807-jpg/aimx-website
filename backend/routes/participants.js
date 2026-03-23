@@ -56,11 +56,18 @@ router.post('/register', async (req, res) => {
 
 router.get('/list', verifyOrganizer, async (req, res) => {
   try {
+    console.log('📋 /api/participants/list called - verifyOrganizer passed');
     const participants = await Participant.find().sort({ createdAt: -1 });
+    console.log(`✅ Found ${participants.length} participants`);
     res.json(participants);
   } catch (error) {
-    console.error('Get all error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('💥 /api/participants/list ERROR:', error);
+    console.error('Stack:', error.stack);
+    console.error('Model:', Participant.modelName);
+    res.status(500).json({ 
+      error: 'Server error', 
+      debug: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    });
   }
 });
 
@@ -127,6 +134,7 @@ router.get('/:participantId', async (req, res) => {
 
 router.patch('/:participantId/status', verifyOrganizer, async (req, res) => {
   try {
+    console.log('🔄 Status update:', req.params.participantId, req.body.status);
     const { status } = req.body;
     if (!['pending', 'approved', 'rejected'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
@@ -148,8 +156,11 @@ router.patch('/:participantId/status', verifyOrganizer, async (req, res) => {
       }
     }
 
+    console.log(`✅ Status updated: ${participant.participantId} → ${status}`);
     res.json({ success: true, status, participant });
   } catch (error) {
+    console.error('💥 Status update ERROR:', error);
+    console.error('Stack:', error.stack);
     res.status(500).json({ error: 'Server error' });
   }
 });

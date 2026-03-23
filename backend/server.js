@@ -57,6 +57,8 @@ mongoose.connect(MONGO_URI, {
   .then(() => console.log(`✅ MongoDB connected: ${MONGO_URI.includes('mongodb+srv') ? 'Atlas' : 'Local'}`))
   .catch(err => {
     console.error('❌ MongoDB connection error:', err.message);
+    console.error('Stack:', err.stack);
+    console.error('MONGO_URI starts with:', MONGO_URI ? MONGO_URI.slice(0, 20) : 'MISSING');
     console.error('ℹ️ Using MONGO_URI from env:', Boolean(process.env.MONGO_URI));
   });
 
