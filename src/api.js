@@ -26,17 +26,24 @@ const getAdminHeaders = () => {
 
 export const adminLogin = async (email, password) => {
   await withDelay();
+  const payload = {
+    username: email,
+    password: password
+  };
+  console.log('🔐 Admin login payload:', payload);
   const response = await fetch(`${BASE_URL}/organizers/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      username: email,
-      password: password
-    })
+    body: JSON.stringify(payload)
   });
 
-  if (!response.ok) throw new Error('Invalid admin credentials');
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('🚨 Admin login failed:', response.status, errorText);
+    throw new Error(`Login failed (${response.status}): ${errorText}`);
+  }
   const data = await response.json();
+  console.log('✅ Admin login success, token length:', data?.token ? data.token.length : 'NO TOKEN');
 
   if (data?.token) localStorage.setItem('adminToken', data.token);
   return data;
