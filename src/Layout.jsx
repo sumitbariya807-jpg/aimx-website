@@ -26,7 +26,6 @@ function Navbar() {
         <Link to="/events" onClick={() => setIsMenuOpen(false)}>Events</Link>
         <Link to="/schedule" onClick={() => setIsMenuOpen(false)}>Schedule</Link>
         <Link to="/register" onClick={() => setIsMenuOpen(false)}>Register</Link>
-        <Link to="/scan" onClick={() => setIsMenuOpen(false)}>Scanner</Link>
         <Link to="/login" onClick={() => setIsMenuOpen(false)}>Login</Link>
       </div>
       

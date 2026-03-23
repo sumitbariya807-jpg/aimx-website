@@ -1,10 +1,20 @@
-# AIMX Website Task Tracker
+# Scanner Relocation Complete ✅
 
-## Current Task: Fix footer "Ask Query" button CSS to match theme
+## Changes Made:
+- ✅ Removed "Scanner" link from navbar (Layout.jsx)
+- ✅ Secured /scan and /checkin routes (admin-only redirects in App.jsx CheckinPage)
+- ✅ Added "🔍 Entry Scanner" button in AdminDashboard controls (links to /admin-scanner)
+- ✅ Updated TODO.md progress
 
-✅ Step 1: Plan approved by user  
-✅ Step 2: Create TODO.md for tracking  
-✅ Step 3: Read index.css for current button styles  \n✅ Step 4: Add footer-specific .btn-primary CSS override  \n🔄 Step 5: Test changes (run `npm run dev` to preview footer)  \n✅ Step 6: Mark complete and attempt_completion  
+## Testing:
+Local dev server started: `cd Aimx-website && npm run dev`
+- Navbar: Scanner link removed
+- Admin login → Dashboard → "Entry Scanner" button → Full scanner functionality
+- Direct /scan access → Redirects non-admins to login/participant
 
-**Next:** Reading index.css content to ensure exact placement of new CSS rules.
+## Deployment Status:
+- [ ] Vercel (frontend)
+- [ ] Render (backend/frontend)
+- [ ] Resend (email service verification)
 
+**Result:** Scanner now exclusive to admin panel after login. Navbar clean. Ready for deployment testing.

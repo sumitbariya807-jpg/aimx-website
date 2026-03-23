@@ -101,15 +101,23 @@ function SuccessPage() {
   );
 }
 
-function CheckinPage() {
+function AdminScanner() {
   const [scannerState, setScannerState] = useState('scan'); // 'scan', 'verify', 'success', 'error'
   const [qrResult, setQrResult] = useState(null);
   const [participant, setParticipant] = useState(null);
   const [loading, setLoading] = useState(false);
   const scannerRef = useRef(null);
   const scanner = useRef(null);
+  const scannerContainerRef = useRef(null);
 
   useEffect(() => {
+    return () => {
+      if (scanner.current) scanner.current.clear();
+    };
+  }, []);
+
+  const startScanner = async () => {
+    if (scanner.current) scanner.current.clear();
     scanner.current = new Html5QrcodeScanner(
       "scanner-reader",
       { fps: 10, qrbox: { width: 250, height: 250 } },
@@ -118,37 +126,35 @@ function CheckinPage() {
 
     const onScanSuccess = async (decodedText) => {
       setQrResult(decodedText);
-      scanner.current.clear();
+      if (scanner.current) scanner.current.clear();
       await verifyAndShow(decodedText);
     };
 
     const onScanFailure = (error) => {
-      // console.warn(`QR scan error: ${error}`);
+      // Silent fail
     };
 
     scanner.current.render(onScanSuccess, onScanFailure);
-
-    return () => {
-      if (scanner.current) scanner.current.clear();
-    };
-  }, []);
+    setScannerState('scan');
+  };
 
   const verifyAndShow = async (qrText) => {
     try {
       setLoading(true);
-      // Extract registration ID from QR (AIMX2026-XXXX format)
-      const match = qrText.match(/AIMX2026-(\w+)/);
+      const match = qrText.match(/AIMX2026?-?([A-Z0-9]{4,})/i);
       if (!match) {
         setScannerState('error');
+        setParticipant(null);
         return;
       }
-      const registrationId = match[0]; // Full AIMX2026-XXXX
+      const registrationId = match[1];
       const data = await verifyParticipant(registrationId);
       setParticipant(data);
       setScannerState('verify');
     } catch (error) {
       console.error('Verify error:', error);
       setScannerState('error');
+      setParticipant(null);
     } finally {
       setLoading(false);
     }
@@ -161,10 +167,13 @@ function CheckinPage() {
       setParticipant(result.participant);
       setScannerState('success');
     } catch (error) {
-      if (error.message.includes('already checked in')) {
+      console.error('Checkin error:', error);
+      if (error.message?.includes('already checked in')) {
         setScannerState('error');
+        alert('Already checked in');
       } else {
-        alert('Checkin failed: ' + error.message);
+        setScannerState('error');
+        alert('Checkin failed: ' + (error.message || 'Unknown error'));
       }
     } finally {
       setLoading(false);
@@ -175,18 +184,27 @@ function CheckinPage() {
     setScannerState('scan');
     setQrResult(null);
     setParticipant(null);
+    setTimeout(startScanner, 300);
+  };
+
+  const scannerStyle = {
+    paddingTop: '120px',
+    minHeight: '80vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   };
 
   if (scannerState === 'scan') {
     return (
-      <section className="section" style={{paddingTop: '120px'}}>
+      <section className="section" style={scannerStyle}>
         <ScrollReveal>
-          <div className="scanner-container glass-card">
+          <div className="scanner-container glass-card" style={{maxWidth: '500px', width: '100%'}}>
             <h1 className="scanner-title">🔍 AIMX 2026 Entry Scanner</h1>
-            <p className="scanner-instruction">"Scan participant QR ticket"</p>
-            <div id="scanner-reader" className="scanner-viewport"></div>
-            <button className="btn btn-secondary" onClick={scanner.current?.clear} style={{marginTop: '1rem'}}>
-              Stop Scanner
+            <p className="scanner-instruction">"Point camera at participant QR ticket"</p>
+            <div id="scanner-reader" className="scanner-viewport" style={{minHeight: '300px'}}></div>
+            <button className="btn btn-secondary" onClick={() => {if (scanner.current) scanner.current.clear(); restartScan();}} style={{marginTop: '1rem'}}>
+              🔄 New Scan
             </button>
           </div>
         </ScrollReveal>
@@ -194,26 +212,48 @@ function CheckinPage() {
     );
   }
 
+  const fullDetails = participant || {};
+
   if (scannerState === 'verify') {
     return (
-      <section className="section" style={{paddingTop: '120px'}}>
+      <section className="section" style={scannerStyle}>
         <ScrollReveal>
-          <div className="scanner-container glass-card">
-            <h2 className="scanner-title">📋 Ticket Verification</h2>
-              <div className="verify-card">
-              <h2 style={{color: "white", fontSize: "3rem", marginBottom: "20px"}}>
-                {participant.registrationId}
-              </h2>
-              <p style={{color: "white", fontSize: "1.5rem"}}><strong>Participant:</strong> {participant.name}</p>
-              <p style={{color: "white", fontSize: "1.5rem"}}><strong>Event:</strong> {participant.event}</p>
-              <p style={{color: "white", fontSize: "1.5rem"}}><strong>Payment:</strong> <span className={participant.paymentStatus === 'Approved' ? 'status-approved' : 'status-pending'}>{participant.paymentStatus}</span></p>
-              <p style={{color: "white", fontSize: "1.5rem"}}><strong>Entry:</strong> <span className={participant.checkInStatus ? 'status-checkedin' : 'status-notcheckedin'}>{participant.checkInStatus ? 'Checked In' : 'Not Checked In'}</span></p>
+          <div className="scanner-container glass-card flash-details" style={{maxWidth: '600px', animation: 'flashIn 0.8s ease-out'}}>
+            <h2 className="scanner-title">📋 Participant Details</h2>
+            <div className="verify-card full-details-card">
+              <div style={{fontSize: '2.5rem', fontWeight: 'bold', color: '#00D4FF', marginBottom: '1rem', textShadow: '0 0 20px #00D4FF'}}>
+                {fullDetails.participantId || fullDetails.registrationId}
+              </div>
+              <div className="participant-scan-details">
+                <div><strong>Lead Name:</strong> {fullDetails.name}</div>
+                <div><strong>Email:</strong> {fullDetails.email}</div>
+                <div><strong>Phone:</strong> {fullDetails.phone}</div>
+                <div><strong>College:</strong> {fullDetails.college}</div>
+                <div><strong>Event:</strong> {fullDetails.eventName || fullDetails.event}{fullDetails.eventSubname ? ` - ${fullDetails.eventSubname}` : ''}</div>
+                {fullDetails.teamName && <div><strong>Team:</strong> {fullDetails.teamName}</div>}
+                <div><strong>Team Size:</strong> {fullDetails.teamSize || 1}</div>
+                {fullDetails.teamMembers && fullDetails.teamMembers.length > 1 && (
+                  <div>
+                    <strong>Team Members:</strong>
+                    <ul style={{margin: '0.5rem 0', paddingLeft: '1.5rem'}}>
+                      {fullDetails.teamMembers.map((member, i) => (
+                        <li key={i}>{member.name} ({member.email})</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div><strong>Transaction:</strong> {fullDetails.transactionId || 'FREE'}</div>
+                <div><strong>Amount:</strong> ₹{fullDetails.amount || fullDetails.price || 0}</div>
+                <div><strong>Status:</strong> <span className={fullDetails.status === 'approved' ? 'status-approved' : 'status-pending'}>{fullDetails.status?.toUpperCase()}</span></div>
+                <div><strong>Check-in:</strong> <span className={fullDetails.checkedIn ? 'status-checkedin' : 'status-notcheckedin'}>{fullDetails.checkedIn ? '✅ CHECKED IN' : '⏳ NOT CHECKED IN'}</span></div>
+                <div style={{fontSize: '0.9rem', opacity: 0.8, marginTop: '1rem'}}><strong>Reg Date:</strong> {fullDetails.date}</div>
+              </div>
             </div>
-            <div className="scanner-actions">
-              <button className="btn btn-primary" onClick={handleCheckin} disabled={loading || participant.checkInStatus}>
-                {participant.checkInStatus ? 'Already Checked In' : '✅ Mark Check-In'}
+            <div className="scanner-actions" style={{marginTop: '2rem'}}>
+              <button className="btn btn-primary" onClick={handleCheckin} disabled={loading || fullDetails.checkedIn}>
+                {loading ? 'Processing...' : fullDetails.checkedIn ? '✅ Already Checked In' : '✅ CONFIRM CHECK-IN'}
               </button>
-              <button className="btn btn-secondary" onClick={restartScan}>Scan Another</button>
+              <button className="btn btn-secondary" onClick={restartScan}>🔄 Scan Next</button>
             </div>
           </div>
         </ScrollReveal>
@@ -223,17 +263,17 @@ function CheckinPage() {
 
   if (scannerState === 'success') {
     return (
-      <section className="section" style={{paddingTop: '120px'}}>
+      <section className="section" style={scannerStyle}>
         <ScrollReveal>
           <div className="scanner-container glass-card success-container">
-            <h2 className="scanner-title success-title">✅ Check-In Complete</h2>
-            <div className="success-checkmark">✓</div>
+            <h2 className="scanner-title success-title">✅ Check-In COMPLETE</h2>
+            <div className="success-checkmark" style={{fontSize: '6rem'}}>✓</div>
             <div className="verify-card success-card">
-              <p><strong>{participant.name}</strong></p>
-              <p>{participant.event}</p>
-              <p>ID: {participant.registrationId}</p>
+              <div style={{fontSize: '2rem', fontWeight: 'bold'}}>{fullDetails.name}</div>
+              <div>{fullDetails.eventName || fullDetails.event}</div>
+              <div>ID: {fullDetails.participantId || fullDetails.registrationId}</div>
             </div>
-            <button className="btn btn-primary" onClick={restartScan}>Scan Next Participant</button>
+            <button className="btn btn-primary" onClick={restartScan} style={{marginTop: '2rem'}}>Scan Next Participant</button>
           </div>
         </ScrollReveal>
       </section>
@@ -242,13 +282,15 @@ function CheckinPage() {
 
   if (scannerState === 'error') {
     return (
-      <section className="section" style={{paddingTop: '120px'}}>
+      <section className="section" style={scannerStyle}>
         <ScrollReveal>
           <div className="scanner-container glass-card error-container">
-            <h2 className="scanner-title error-title">❌ Scan Error</h2>
-            <p>QR code invalid or participant not found.</p>
-            {qrResult && <p><small>Scanned: {qrResult}</small></p>}
-            <button className="btn btn-primary" onClick={restartScan}>Try Again</button>
+            <h2 className="scanner-title error-title">❌ Invalid QR Code</h2>
+            <p>QR invalid, participant not found, or already checked in.</p>
+            {qrResult && <p style={{wordBreak: 'break-all'}}><small>Scanned: {qrResult}</small></p>}
+            <div className="scanner-actions">
+              <button className="btn btn-primary" onClick={restartScan}>Try Again</button>
+            </div>
           </div>
         </ScrollReveal>
       </section>
@@ -256,6 +298,18 @@ function CheckinPage() {
   }
 
   return null;
+}
+
+function CheckinPage() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!localStorage.getItem('adminAuth')) {
+      navigate(localStorage.getItem('participantAuth') ? '/participant' : '/login');
+    } else {
+      navigate('/admin');
+    }
+  }, [navigate]);
+  return <div>Redirecting to admin panel...</div>;
 }
 
 
@@ -1412,17 +1466,20 @@ function AdminDashboard() {
       <ScrollReveal>
         <div className="admin-header-container">
           <h1 className="section-title admin-header">Admin Control Panel</h1>
-          <div className="admin-controls">
-            <button className="btn btn-primary" onClick={downloadParticipantsExcel}>
-              📊 Download Excel
-            </button>
-            <button className="btn btn-neon" onClick={handleAdminLogout}>
-              🚪 Logout
-            </button>
-            <button className="btn btn-secondary" onClick={loadParticipants}>
-              🔄 Refresh
-            </button>
-          </div>
+        <div className="admin-controls">
+          <button className="btn btn-primary" onClick={downloadParticipantsExcel}>
+            📊 Download Excel
+          </button>
+          <button className="btn btn-neon" onClick={handleAdminLogout}>
+            🚪 Logout
+          </button>
+          <button className="btn btn-secondary" onClick={loadParticipants}>
+            🔄 Refresh
+          </button>
+          <button className="btn btn-success admin-scanner-btn" onClick={() => navigate('/admin-scanner')} title="Full participant details on scan">
+            🔍 Entry Scanner
+          </button>
+        </div>
         </div>
 
         {/* Stats Grid */}
@@ -1596,6 +1653,7 @@ function App() {
             <Route path="success/:id" element={<SuccessPage />} />
             <Route path="checkin" element={<CheckinPage />} />
             <Route path="scan" element={<CheckinPage />} />
+            <Route path="admin-scanner" element={<AdminScanner />} />
           </Route>
         </Routes>
       </div>
